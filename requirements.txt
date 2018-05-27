@@ -9,7 +9,7 @@ networkx>=2
 pyyaml
 tables
 pandas
-h5sparse>=0.0.4
+h5sparse>=0.0.5
 
 # for testing
 tox

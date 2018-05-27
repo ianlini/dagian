@@ -1,0 +1,220 @@
+import inspect
+from past.builtins import basestring
+from collections import defaultdict
+
+import six
+import networkx as nx
+from bistiming import SimpleTimer
+
+from .dag import DataGraph, draw_dag
+from .bundling import DataBundlerMixin
+from .data_handlers import (
+    MemoryDataHandler,
+    H5pyDataHandler,
+    PandasHDFDataHandler,
+    PickleDataHandler,
+)
+
+
+class DataGeneratorType(type):
+
+    def __init__(cls, name, bases, attrs):  # noqa
+        # pylint: disable=protected-access
+        super(DataGeneratorType, cls).__init__(name, bases, attrs)
+
+        attrs = inspect.getmembers(
+            cls, lambda a: hasattr(a, '_dagian_output_configs'))
+
+        dag = DataGraph()
+        # build the dynamic DAG
+        handler_set = set()
+        for function_name, function in attrs:
+            node_attrs = {'output_configs': function._dagian_output_configs}
+            handler_set.update(config['handler'] for config in node_attrs['output_configs'])
+            node_attrs['func_name'] = function_name
+            if hasattr(function, '_dagian_requirements'):
+                node_attrs['requirements'] = function._dagian_requirements
+            else:
+                node_attrs['requirements'] = ()
+
+            dag.add_node(function_name,
+                         keys=[config['key'] for config in node_attrs['output_configs']],
+                         predecessor_keys=node_attrs['requirements'],
+                         output_configs=function._dagian_output_configs,
+                         attrs=node_attrs)
+
+        cls._dag = dag
+        cls._handler_set = handler_set
+
+
+def _run_function(function, will_generate_keys, kwargs):
+    with SimpleTimer("Generating {} using {}"
+                     .format(will_generate_keys, function.__name__),
+                     end_in_new_line=False):  # pylint: disable=C0330
+        result_dict = function(**kwargs)
+    return result_dict
+
+
+def _check_result_dict_type(result_dict, function_name):
+    if not (hasattr(result_dict, 'keys')
+            and hasattr(result_dict, '__getitem__')):
+        raise ValueError("the return value of mehod {} should have "
+                         "keys and __getitem__ methods".format(function_name))
+
+
+class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
+
+    def __init__(self, handlers):
+        handler_set = set(six.viewkeys(handlers))
+        if handler_set != self._handler_set:
+            redundant_handlers_set = handler_set - self._handler_set
+            lacked_handlers_set = self._handler_set - handler_set
+            raise ValueError('Handler set mismatch. {} redundant and {} lacked.'
+                             .format(redundant_handlers_set,
+                                     lacked_handlers_set))
+        self._handlers = handlers
+
+    def get_handler(self, key):
+        handler_name = self._dag.get_handler_name(key)
+        handler = self._handlers[handler_name]
+        return handler
+
+    def get(self, key):
+        handler = self.get_handler(key)
+        data = handler.get(key)
+        return data
+
+    def _dag_prune_can_skip(self, nx_digraph, generation_order):
+        for node in reversed(generation_order):
+            node_attrs = nx_digraph.node[node]
+            key_info_dict = {config['key']: {'handler': self._handlers[config['handler']]}
+                             for config in node_attrs['output_configs']}
+            node_attrs['skipped'] = True
+            for target_node, edge_attr in nx_digraph.succ[node].items():
+                if nx_digraph.node[target_node]['skipped']:
+                    edge_attr['skipped_keys'] = edge_attr['keys']
+                    edge_attr['nonskipped_keys'] = set()
+                else:
+                    required_keys = edge_attr['keys']
+                    edge_attr['skipped_keys'] = set()
+                    edge_attr['nonskipped_keys'] = set()
+                    for required_key in required_keys:
+                        key_info = key_info_dict[required_key]
+                        if 'can_skip' not in key_info:
+                            key_info['can_skip'] = key_info['handler'].can_skip(required_key)
+                        if key_info['can_skip']:
+                            edge_attr['skipped_keys'].add(required_key)
+                        else:
+                            edge_attr['nonskipped_keys'].add(required_key)
+                    if len(edge_attr['nonskipped_keys']) > 0:
+                        node_attrs['skipped'] = False
+
+    def build_involved_dag(self, data_keys):
+        # get the nodes and edges that will be considered during the generation
+        involved_dag = self._dag.build_directed_graph(data_keys, root_node_key='generate')
+        involved_dag = involved_dag.reverse(copy=False)
+        generation_order = list(nx.topological_sort(involved_dag))[:-1]
+        involved_dag.node['generate']['skipped'] = False
+        self._dag_prune_can_skip(involved_dag, generation_order)
+        return involved_dag, generation_order
+
+    def draw_involved_dag(self, path, data_keys):
+        involved_dag, _ = self.build_involved_dag(data_keys)
+        draw_dag(involved_dag, path)
+
+    def _get_upstream_data(self, dag, node):
+        data = {}
+        for source_node, edge_attrs in dag.pred[node].items():
+            source_attrs = dag.nodes[source_node]
+            for configs in source_attrs['output_configs']:
+                if configs['key'] not in edge_attrs['template_keys']:
+                    continue
+                source_handler = self._handlers[configs['handler']]
+                key = edge_attrs['template_keys'][configs['key']]
+                formatted_key_data = source_handler.get(key)
+                # change the key to template
+                data[configs['key']] = formatted_key_data
+        return data
+
+    def _generate_one(self, dag, will_generate_keys, func_name, output_configs):
+        data = self._get_upstream_data(dag, will_generate_keys)
+        function_kwargs = {}
+        if data:
+            function_kwargs = {'upstream_data': data}
+        # TODO: add handler-specific arguments
+        # handler = self._handlers[handler_key]
+        # function_kwargs = handler.get_function_kwargs(
+        #     will_generate_keys=will_generate_keys,
+        #     data=data,
+        #     **handler_kwargs
+        # )
+        function = getattr(self, func_name)
+        result_dict = _run_function(function, will_generate_keys, function_kwargs)
+
+        if result_dict is None:
+            result_dict = {}
+        _check_result_dict_type(result_dict, func_name)
+        # TODO: check whether the keys in result_dict matches will_generate_keys
+        # handler.check_result_dict_keys(
+        #     result_dict, will_generate_keys, func_name, handler_key, **handler_kwargs)
+
+        # group the data by handler
+        handler_data_dict = defaultdict(dict)
+        for config in output_configs:
+            handler_data_dict[config['handler']][config['key']] = result_dict[config['key']]
+        # write the data for each handler
+        for handler_name, data_dict in six.viewitems(handler_data_dict):
+            handler = self._handlers[handler_name]
+            handler.write_data(data_dict)
+
+    def generate(self, data_keys, dag_output_path=None):
+        if isinstance(data_keys, basestring):
+            data_keys = (data_keys,)
+
+        involved_dag, generation_order = self.build_involved_dag(data_keys)
+        dag_output_path = "tmp.svg"
+        if dag_output_path is not None:
+            draw_dag(involved_dag, dag_output_path)
+
+        # generate data
+        for node in generation_order:
+            node_attrs = involved_dag.nodes[node]
+            if node_attrs['skipped']:
+                continue
+            self._generate_one(
+                involved_dag, node, node_attrs['func_name'], node_attrs['output_configs'])
+
+        return involved_dag
+
+    @classmethod
+    def draw_dag(cls, path, data_keys):
+        # pylint: disable=protected-access
+        dag = cls._dag.draw(path, data_keys, root_node_key='generate', reverse=True)
+        if not nx.is_directed_acyclic_graph(dag):
+            print("Warning! The graph is not acyclic!")
+
+
+class FeatureGenerator(DataGenerator):
+
+    def __init__(self, handlers=None, h5py_hdf_path=None, pandas_hdf_path=None,
+                 pickle_dir=None):
+        if handlers is None:
+            handlers = {}
+        if 'memory' in self._handler_set and 'memory' not in handlers:
+            handlers['memory'] = MemoryDataHandler()
+        if 'h5py' in self._handler_set and 'h5py' not in handlers:
+            if h5py_hdf_path is None:
+                raise ValueError("h5py_hdf_path should be specified "
+                                 "when initiating FeatureGenerator.")
+            handlers['h5py'] = H5pyDataHandler(h5py_hdf_path)
+        if 'pandas_hdf' in self._handler_set and 'pandas_hdf' not in handlers:
+            if pandas_hdf_path is None:
+                raise ValueError("pandas_hdf_path should be specified "
+                                 "when initiating FeatureGenerator.")
+            handlers['pandas_hdf'] = PandasHDFDataHandler(pandas_hdf_path)
+        if 'pickle' in self._handler_set and 'pickle' not in handlers:
+            if pickle_dir is None:
+                raise ValueError("pickle_dir should be specified "
+                                 "when initiating FeatureGenerator.")
+            handlers['pickle'] = PickleDataHandler(pickle_dir)
+        super(FeatureGenerator, self).__init__(handlers)

@@ -26,7 +26,7 @@ else:
         'pyyaml',
         'tables',
         'pandas',
-        'h5sparse>=0.0.4',
+        'h5sparse>=0.0.5',
     ]
     tests_require = []
 
@@ -53,6 +53,13 @@ setup(
     install_requires=install_requires,
     tests_require=tests_require,
     license="MIT",
+    entry_points={
+        'console_scripts': [
+            'dagian = dagian.tools:dagian_run',
+            'dagian-init = dagian.tools:init_config',
+            'dagian-draw-dag = dagian.tools:draw_dag',
+        ],
+    },
     classifiers=[
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
         'Topic :: Scientific/Engineering :: Information Analysis',
@@ -65,5 +72,7 @@ setup(
     test_suite='nose.collector',
     packages=[
         'dagian',
+        'dagian.tools',
+        'dagian.data_wrappers',
     ],
 )
