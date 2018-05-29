@@ -29,19 +29,22 @@ class DataGeneratorType(type):
         # build the dynamic DAG
         handler_set = set()
         for function_name, function in attrs:
-            node_attrs = {'output_configs': function._dagian_output_configs}
-            handler_set.update(config['handler'] for config in node_attrs['output_configs'])
-            node_attrs['func_name'] = function_name
+            handler_set.update(config['handler'] for config in function._dagian_output_configs)
             if hasattr(function, '_dagian_requirements'):
-                node_attrs['requirements'] = function._dagian_requirements
+                requirements = function._dagian_requirements
             else:
-                node_attrs['requirements'] = ()
+                requirements = ()
+            if hasattr(function, '_dagian_parameters'):
+                parameters = function._dagian_parameters
+            else:
+                parameters = ()
 
-            dag.add_node(function_name,
-                         keys=[config['key'] for config in node_attrs['output_configs']],
-                         predecessor_keys=node_attrs['requirements'],
-                         output_configs=function._dagian_output_configs,
-                         attrs=node_attrs)
+            dag.add_node(
+                function_name,
+                parameters=parameters,
+                requirements=requirements,
+                output_configs=function._dagian_output_configs,
+            )
 
         cls._dag = dag
         cls._handler_set = handler_set
@@ -87,8 +90,8 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
     def _dag_prune_can_skip(self, nx_digraph, generation_order):
         for node in reversed(generation_order):
             node_attrs = nx_digraph.node[node]
-            key_info_dict = {config['key']: {'handler': self._handlers[config['handler']]}
-                             for config in node_attrs['output_configs']}
+            key_info_dict = {key: {'handler': self._handlers[config['handler']]}
+                             for key, config in six.viewitems(node_attrs['output_configs'])}
             node_attrs['skipped'] = True
             for target_node, edge_attr in nx_digraph.succ[node].items():
                 if nx_digraph.node[target_node]['skipped']:
@@ -126,14 +129,13 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
         data = {}
         for source_node, edge_attrs in dag.pred[node].items():
             source_attrs = dag.nodes[source_node]
-            for configs in source_attrs['output_configs']:
-                if configs['key'] not in edge_attrs['template_keys']:
+            for template_key, config in six.viewitems(source_attrs['output_configs']):
+                if template_key not in edge_attrs['template_keys']:
                     continue
-                source_handler = self._handlers[configs['handler']]
-                key = edge_attrs['template_keys'][configs['key']]
+                source_handler = self._handlers[config['handler']]
+                key = edge_attrs['template_keys'][template_key]
                 formatted_key_data = source_handler.get(key)
-                # change the key to template
-                data[configs['key']] = formatted_key_data
+                data[template_key] = formatted_key_data
         return data
 
     def _generate_one(self, dag, will_generate_keys, func_name, output_configs):
@@ -160,8 +162,8 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
 
         # group the data by handler
         handler_data_dict = defaultdict(dict)
-        for config in output_configs:
-            handler_data_dict[config['handler']][config['key']] = result_dict[config['key']]
+        for key, config in six.viewitems(output_configs):
+            handler_data_dict[config['handler']][key] = result_dict[key]
         # write the data for each handler
         for handler_name, data_dict in six.viewitems(handler_data_dict):
             handler = self._handlers[handler_name]
@@ -172,7 +174,6 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
             data_keys = (data_keys,)
 
         involved_dag, generation_order = self.build_involved_dag(data_keys)
-        dag_output_path = "tmp.svg"
         if dag_output_path is not None:
             draw_dag(involved_dag, dag_output_path)
 

@@ -4,6 +4,7 @@ import dagian as fg
 from dagian.decorators import (
     will_generate,
     require,
+    params,
 )
 
 
@@ -36,13 +37,13 @@ class LifetimeFeatureGenerator(fg.FeatureGenerator):
         bmi = data_df['weight'] / ((data_df['height'] / 100) ** 2)
         return {'BMI': bmi}
 
-    # @require('{dividend}')
-    # @require('{divisor}')
-    # @will_generate('h5py', 'division')
-    # @params('dividend', 'divisor')
-    # def gen_division(self, upstream_data, args):
-    #     division_result = upstream_data['{dividend}'].value / upstream_data['{divisor}'].value
-    #     return {'division': division_result}
+    @require('{dividend}')
+    @require('{divisor}')
+    @will_generate('h5py', 'division')
+    @params('dividend', 'divisor')
+    def gen_division(self, upstream_data, args):
+        division_result = upstream_data['{dividend}'].value / upstream_data['{divisor}'].value
+        return {'division': division_result}
 
     @require('data_df')
     @will_generate('h5py', 'is_in_test_set')

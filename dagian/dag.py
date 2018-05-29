@@ -39,76 +39,59 @@ class DataGraph(object):
     """
 
     def __init__(self):
-        self._key_node_dict = {}
         self._key_output_config_dict = {}
-        self._node_keys_dict = {}
-        self._node_attrs_dict = {}
-        self._node_predecessor_dict = {}
+        self._key_node_attrs_dict = {}
 
-    def add_node(self, name, keys=(), predecessor_keys=(), output_configs=(), attrs=None):
+    def add_node(self, name, parameters, requirements, output_configs):
         # pylint: disable=protected-access
-        if name in self._node_attrs_dict:
-            # should be impossible
-            raise ValueError("Duplicated node name '{}' for {} and {}."
-                             .format(name, self._node_attrs_dict[name], attrs))
-        self._node_attrs_dict[name] = attrs
-
-        if len(keys) == 0:
+        # format better data structure
+        parameters = tuple(sorted(set(parameters)))
+        requirements = tuple(sorted(set(requirements)))
+        output_config_dict = {
+            config['key']: {
+                'handler': config['handler'],
+                'handler_kwargs': config['handler_kwargs'],
+            }
+            for config in output_configs
+        }
+        if not output_config_dict:
             raise ValueError("No data key for {}.".format(name))
-        self._node_keys_dict[name] = tuple(sorted(keys))
 
-        for key in keys:
-            if key in self._key_node_dict:
-                raise ValueError("Duplicated data key '{}' for {} and {}."
-                                 .format(key, self._key_node_dict[key], name))
-            self._key_node_dict[key] = name
-
-        for output_config in output_configs:
-            key = output_config['key']
+        # build index
+        for key, output_config in six.viewitems(output_config_dict):
             if key in self._key_output_config_dict:
                 raise ValueError("Duplicated data key '{}' in {} (alreadly have value {})."
                                  .format(key, name, self._key_output_config_dict[key]))
-            self._key_output_config_dict[key] = {
-                'handler': output_config['handler'],
-                'handler_kwargs': output_config['handler_kwargs'],
-            }
+            self._key_output_config_dict[key] = output_config
 
-        self._node_predecessor_dict[name] = tuple(sorted(set(predecessor_keys)))
+        node_attrs = {
+            'func_name': name,
+            'parameters': parameters,
+            'requirements': requirements,
+            'output_configs': output_config_dict,
+        }
+
+        for key in output_config_dict.keys():
+            if key in self._key_node_attrs_dict:
+                raise ValueError("Duplicated data key '{}' for {} and {}."
+                                 .format(key, self._key_node_attrs_dict[key], node_attrs))
+            self._key_node_attrs_dict[key] = node_attrs
 
     def get_handler_name(self, key):
         return self._key_output_config_dict[key]['handler']
-
-    def match_node(self, key):
-        found_node = None
-        for data_key, node in six.viewitems(self._key_node_dict):
-            if data_key == key:
-                if found_node is None:
-                    found_node = node
-                else:
-                    raise ValueError("Duplicated data key '{}' for {} and {}."
-                                     .format(key, found_node, node))
-        if found_node is None:
-            raise KeyError(key)
-        return found_node
-
-    def get_node_attr(self, key):
-        node = self.match_node(key)
-        node_attr = self._node_attrs_dict[node]
-        return node_attr
 
     def _grow_ancestors(self, nx_digraph, root_node_key, predecessor_keys):
         predecessor_keys = {k: k for k in predecessor_keys}
         # grow the graph using DFS
         for template_key, key in six.viewitems(predecessor_keys):
-            node = self.match_node(key)
+            node_attrs = self._key_node_attrs_dict[key]
 
             # for merging node, we use key as the 'key' in nx_digraph
-            node_keys = self._node_keys_dict[node]
+            node_keys = tuple(sorted(node_attrs['output_configs'].keys()))
 
             if node_keys not in nx_digraph:
-                attrs = self._node_attrs_dict[node].copy()
-                nx_digraph.add_node(node_keys, **attrs)
-                self._grow_ancestors(nx_digraph, node_keys, self._node_predecessor_dict[node])
+                nx_digraph.add_node(node_keys, **node_attrs)
+                self._grow_ancestors(nx_digraph, node_keys, node_attrs['requirements'])
 
             if not nx_digraph.has_edge(root_node_key, node_keys):
                 # initialize edge
