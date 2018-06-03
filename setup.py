@@ -27,6 +27,7 @@ else:
         'tables',
         'pandas',
         'h5sparse>=0.0.5',
+        'frozendict>=1.2',
     ]
     tests_require = []
 

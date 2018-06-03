@@ -17,8 +17,11 @@ def get_data_keys_from_structure(structure):
         elif isinstance(structure, list):
             data_keys.extend(structure)
         elif isinstance(structure, dict):
-            for _, val in six.viewitems(structure):
-                _get_data_keys_from_structure(val)
+            if 'key' in structure:
+                data_keys.append(structure)
+            else:
+                for _, val in six.viewitems(structure):
+                    _get_data_keys_from_structure(val)
         else:
             raise TypeError("The bundle structure only support "
                             "dict, list and str.")
