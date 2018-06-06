@@ -115,7 +115,6 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
     def build_involved_dag(self, data_definitions):
         # get the nodes and edges that will be considered during the generation
         involved_dag = self._dag.build_directed_graph(data_definitions, root_node_key='generate')
-        involved_dag = involved_dag.reverse(copy=False)
         generation_order = list(nx.topological_sort(involved_dag))[:-1]
         involved_dag.node['generate']['skipped'] = False
         self._dag_prune_can_skip(involved_dag, generation_order)
@@ -196,9 +195,9 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
         return involved_dag
 
     @classmethod
-    def draw_dag(cls, path, data_keys):
+    def draw_dag(cls, path, raw_data_definitions):
         # pylint: disable=protected-access
-        dag = cls._dag.draw(path, data_keys, root_node_key='generate', reverse=True)
+        dag = cls._dag.draw(path, raw_data_definitions, root_node_key='generate')
         if not nx.is_directed_acyclic_graph(dag):
             print("Warning! The graph is not acyclic!")
 

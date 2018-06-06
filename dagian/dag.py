@@ -31,6 +31,14 @@ class DataDefinition(frozendict):
             args = self._args
         return DataDefinition(key=key, args=args)
 
+    def __str__(self):
+        if len(self._args) == 0:
+            return "DataDefinition({})".format(repr(self._key))
+        return "DataDefinition({}, {})".format(repr(self._key), repr(self._args._dict))
+
+    def __repr__(self):
+        return str(self)
+
 
 def to_data_definitions(raw_data_definitions):
     """
@@ -131,33 +139,39 @@ class DataGraph(object):
     def get_handler_name(self, key):
         return self._key_output_config_dict[key]['handler']
 
-    def _grow_ancestors(self, nx_digraph, root_node_key, predecessor_defs):
+    def _grow_ancestors(self, nx_digraph, root_node_key, predecessor_defs, key_template_dict=None):
         """
         Parameters
         ----------
         predecessor_defs: Sequence[DataDefinition]
         """
+        if key_template_dict is None:
+            key_template_dict = {}
+
         # grow the graph using DFS
         for predecessor_def in predecessor_defs:
             node_attrs = self._key_node_attrs_dict[predecessor_def.key]
 
             # for merging node, we use key as the 'key' in nx_digraph
-            node_data_defs = tuple(
-                predecessor_def.replace(key=key) for key in node_attrs['output_configs'].keys())
+            node_data_defs = predecessor_def.replace(
+                key=tuple(node_attrs['output_configs'].keys()))
 
             if node_data_defs not in nx_digraph:
                 # ancestors of this node has not been grown
+                pre_key_template_dict = {key_template.format(**predecessor_def.args): key_template
+                                         for key_template in node_attrs['requirements']}
                 nx_digraph.add_node(node_data_defs, **node_attrs)
-                requirement_defs = to_data_definitions(node_attrs['requirements'])
-                self._grow_ancestors(nx_digraph, node_data_defs, requirement_defs)
-
-            if not nx_digraph.has_edge(root_node_key, node_data_defs):
+                requirement_defs = to_data_definitions(pre_key_template_dict.keys())
+                self._grow_ancestors(
+                    nx_digraph, node_data_defs, requirement_defs, pre_key_template_dict)
+            if not nx_digraph.has_edge(node_data_defs, root_node_key):
                 # initialize edge
                 nx_digraph.add_edge(
-                    root_node_key, node_data_defs, data_definitions=set(), template_keys={})
-            edge_attr = nx_digraph.edges[root_node_key, node_data_defs]
+                    node_data_defs, root_node_key, data_definitions=set(), template_keys={})
+            edge_attr = nx_digraph.edges[node_data_defs, root_node_key]
             edge_attr['data_definitions'].add(predecessor_def)
-            edge_attr['template_keys'][predecessor_def.key] = predecessor_def
+            template_key = key_template_dict.get(predecessor_def.key, predecessor_def.key)
+            edge_attr['template_keys'][template_key] = predecessor_def
 
     def build_directed_graph(self, data_definitions, root_node_key='root'):
         """
