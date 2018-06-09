@@ -7,7 +7,7 @@ import h5py
 import six
 from bistiming import IterTimer, SimpleTimer
 
-from .dag import DataDefinition
+from .data_definition import DataDefinition
 
 
 def get_data_definitions_from_structure(structure):
@@ -104,15 +104,14 @@ class DataBundlerMixin(object):
                 (self.get_handler(structure)
                  .bundle(DataDefinition(structure), data_bundle_hdf_path, dset_name))
             elif isinstance(structure, list):
-                data_definitions = [DataDefinition(data_definition)
-                                    for data_definition in structure]
+                data_definitions = get_data_definitions_from_structure(structure)
                 if structure_config.get('concat', False):
                     self.fill_concat_data(
                         data_bundle_hdf_path, dset_name, data_definitions, buffer_size)
                 else:
                     for data_definition in data_definitions:
                         (self.get_handler(data_definition.key)
-                         .bundle(DataDefinition(data_definition),
+                         .bundle(data_definition,
                                  data_bundle_hdf_path, dset_name + "/" + data_definition.key))
             elif isinstance(structure, dict):
                 for key, val in six.viewitems(structure):

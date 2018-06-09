@@ -1,70 +1,10 @@
 from os.path import dirname
 
-from past.builtins import basestring
-import six
 from mkdir_p import mkdir_p
+import six
 import networkx as nx
-from frozendict import frozendict
 
-
-class DataDefinition(frozendict):
-    def __init__(self, key, args=None):
-        self._key = key
-        if args is None:
-            self._args = frozendict()
-        else:
-            self._args = frozendict(args)
-        super(DataDefinition, self).__init__(key=key, args=self._args)
-
-    @property
-    def key(self):
-        return self._key
-
-    @property
-    def args(self):
-        return self._args
-
-    def replace(self, key=None, args=None):
-        if key is None:
-            key = self._key
-        if args is None:
-            args = self._args
-        return DataDefinition(key=key, args=args)
-
-    def __str__(self):
-        if len(self._args) == 0:
-            return "DataDefinition({})".format(repr(self._key))
-        arg_strs = ["%s: %s" % (repr(key), repr(self._args[key]))
-                    for key in sorted(six.viewkeys(self._args))]
-        args_str = "{%s}" % ", ".join(arg_strs)
-        return "DataDefinition({}, {})".format(repr(self._key), args_str)
-
-    def __repr__(self):
-        return str(self)
-
-
-def to_data_definitions(raw_data_definitions):
-    """
-    Parameters
-    ----------
-    raw_data_definitions: Union[str, Mapping]
-        Accept 2 formats of data definition:
-        1. str format
-        2. Mapping with key ``key`` and ``args``
-    """
-    if isinstance(raw_data_definitions, basestring):
-        raw_data_definitions = (raw_data_definitions,)
-    data_definitions = []
-    for raw_data_definition in raw_data_definitions:
-        if isinstance(raw_data_definition, basestring):
-            data_definition = DataDefinition(key=raw_data_definition)
-        elif isinstance(raw_data_definition, dict):
-            data_definition = DataDefinition(**raw_data_definition)
-        else:
-            raise ValueError("Data definition format not supported: {}."
-                             .format(raw_data_definition))
-        data_definitions.append(data_definition)
-    return data_definitions
+from .data_definition import DataDefinition
 
 
 def draw_dag(nx_dag, path):
@@ -162,10 +102,11 @@ class DataGraph(object):
             if node_data_defs not in nx_digraph:
                 # TODO: check the argument
                 # ancestors of this node has not been grown
-                pre_key_template_dict = {key_template.format(**predecessor_def.args): key_template
-                                         for key_template in node_attrs['requirements']}
+                pre_key_template_dict = {
+                    DataDefinition(key_template.format(**predecessor_def.args)): key_template
+                    for key_template in node_attrs['requirements']}
                 nx_digraph.add_node(node_data_defs, **node_attrs)
-                requirement_defs = to_data_definitions(pre_key_template_dict.keys())
+                requirement_defs = list(pre_key_template_dict.keys())
                 self._grow_ancestors(
                     nx_digraph, node_data_defs, requirement_defs, pre_key_template_dict)
             if not nx_digraph.has_edge(node_data_defs, root_node_key):
@@ -174,7 +115,7 @@ class DataGraph(object):
                     node_data_defs, root_node_key, data_definitions=set(), template_key_dict={})
             edge_attr = nx_digraph.edges[node_data_defs, root_node_key]
             edge_attr['data_definitions'].add(predecessor_def)
-            template_key = key_template_dict.get(predecessor_def.key, predecessor_def.key)
+            template_key = key_template_dict.get(predecessor_def, predecessor_def.key)
             edge_attr['template_key_dict'][predecessor_def.key] = template_key
 
     def build_directed_graph(self, data_definitions, root_node_key='root'):

@@ -14,7 +14,7 @@ import six
 from six.moves import cPickle
 
 from .data_wrappers import PandasHDFDataset
-from .dag import DataDefinition
+from .data_definition import DataDefinition
 
 
 SPARSE_FORMAT_SET = set(['csr', 'csc'])

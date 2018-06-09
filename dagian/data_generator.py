@@ -5,7 +5,8 @@ import six
 import networkx as nx
 from bistiming import SimpleTimer
 
-from .dag import DataGraph, draw_dag, to_data_definitions, DataDefinition
+from .data_definition import DataDefinition
+from .dag import DataGraph, draw_dag
 from .bundling import DataBundlerMixin
 from .data_handlers import (
     MemoryDataHandler,
@@ -82,7 +83,7 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
         return handler
 
     def get(self, data_definition):
-        handler = self.get_handler(data_definition)
+        handler = self.get_handler(data_definition.key)
         data = handler.get(data_definition)
         return data
 

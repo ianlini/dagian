@@ -33,13 +33,13 @@ class LifetimeFeaturesGeneratorTest(unittest.TestCase):
         dagian_run_with_configs(global_config, bundle_config)
 
         data_bundle_hdf_path = join(data_bundles_dir, 'default.h5')
+        data_definitions = get_data_definitions_from_structure(bundle_config['structure'])
         with h5py.File(h5py_hdf_path, "r") as global_data_h5f, \
                 h5py.File(data_bundle_hdf_path, "r") as data_bundle_h5f:
             assert (set(global_data_h5f)
-                    == set(get_data_definitions_from_structure(
-                        bundle_config['structure'])))
+                    == set(str(data_definition) for data_definition in data_definitions))
             assert set(data_bundle_h5f) == {'features', 'test_filters', 'label'}
             assert set(data_bundle_h5f['test_filters']) == {'is_in_test_set'}
-            self.assertTupleEqual(data_bundle_h5f['features'].shape, (6, 3))
+            self.assertTupleEqual(data_bundle_h5f['features'].shape, (6, 4))
 
         rmtree(test_output_dir)
