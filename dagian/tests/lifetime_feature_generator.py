@@ -44,7 +44,7 @@ id,lifetime,tested_age,weight,height,gender,income
     @will_generate('memory', 'mem_raw_data')
     def gen_mem_raw_data(self, upstream_data):
         data_df = upstream_data['data_df']
-        return data_df[['weight', 'height']].values
+        return {'mem_raw_data': data_df[['weight', 'height']].values}
 
     # @require('data_df')
     # @will_generate('h5py', 'man_raw_data', manually_create_dataset=True)

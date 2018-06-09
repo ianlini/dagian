@@ -72,6 +72,6 @@ def test_generate_lifetime_features():
         assert set(data_bundle_h5f['test_dict']) == {'comparison'}
         assert (set(data_bundle_h5f['test_dict/comparison'])
                 == set(bundle_config['structure']['test_dict']['comparison']))
-        assert data_bundle_h5f['features'].shape == (6, 12)
+        assert data_bundle_h5f['features'].shape == (6, 10)
 
     rmtree(test_output_dir)

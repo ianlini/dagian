@@ -8,7 +8,6 @@ import h5sparse
 from mkdir_p import mkdir_p
 import numpy as np
 import pandas as pd
-from past.builtins import basestring
 import scipy.sparse as ss
 import six
 from six.moves import cPickle
@@ -253,7 +252,7 @@ class PickleDataHandler(DataHandler):
         return False
 
     def get(self, data_definition):
-        if isinstance(data_definition, basestring):
+        if isinstance(data_definition, DataDefinition):
             with open(os.path.join(self.pickle_dir, str(data_definition) + ".pkl"), "rb") as fp:
                 return cPickle.load(fp)
         data = {}
