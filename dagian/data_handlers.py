@@ -8,12 +8,12 @@ import h5sparse
 from mkdir_p import mkdir_p
 import numpy as np
 import pandas as pd
-from past.builtins import basestring
 import scipy.sparse as ss
 import six
 from six.moves import cPickle
 
 from .data_wrappers import PandasHDFDataset
+from .data_definition import DataDefinition
 
 
 SPARSE_FORMAT_SET = set(['csr', 'csc'])
@@ -42,11 +42,11 @@ def check_exact_match_keys(result_dict_key_set, will_generate_key_set,
 class DataHandler(six.with_metaclass(ABCMeta, object)):
 
     @abstractmethod
-    def can_skip(self, data_key):
+    def can_skip(self, data_definition):
         pass
 
     @abstractmethod
-    def get(self, keys):
+    def get(self, data_definition):
         pass
 
     def get_function_kwargs(self, will_generate_keys, data):
@@ -67,9 +67,9 @@ class DataHandler(six.with_metaclass(ABCMeta, object)):
     def write_data(self, result_dict):
         pass
 
-    def bundle(self, key, path, new_key):
+    def bundle(self, data_definition, path, new_key):
         """Copy the data to another HDF5 file with new key."""
-        data = self.get(key)
+        data = self.get(data_definition)
         with h5sparse.File(path) as h5f:
             h5f.create_dataset(new_key, data=data)
 
@@ -82,15 +82,15 @@ class H5pyDataHandler(DataHandler):
             mkdir_p(hdf_dir)
         self.h5f = h5py.File(hdf_path, 'a')
 
-    def can_skip(self, data_key):
-        if data_key in self.h5f:
+    def can_skip(self, data_definition):
+        if str(data_definition) in self.h5f:
             return True
         return False
 
-    def get(self, key):
-        if isinstance(key, basestring):
-            return h5sparse.Group(self.h5f)[key]
-        return {k: h5sparse.Group(self.h5f)[k] for k in key}
+    def get(self, data_definition):
+        if isinstance(data_definition, DataDefinition):
+            return h5sparse.Group(self.h5f)[str(data_definition)]
+        return {k: h5sparse.Group(self.h5f)[str(k)] for k in data_definition}
 
     def get_function_kwargs(self, will_generate_keys, data,
                             manually_create_dataset=False):
@@ -124,20 +124,22 @@ class H5pyDataHandler(DataHandler):
                                    function_name, handler_key)
 
     def write_data(self, result_dict):
-        for key, result in six.viewitems(result_dict):
+        for data_definition, result in six.viewitems(result_dict):
+            # chech nan
             if ss.isspmatrix(result):
                 if np.isnan(result.data).any():
-                    raise ValueError("data {} have nan".format(key))
+                    raise ValueError("data {} have nan".format(data_definition))
             elif np.isnan(result).any():
-                raise ValueError("data {} have nan".format(key))
-            with SimpleTimer("Writing generated data {} to hdf5 file"
-                             .format(key),
+                raise ValueError("data {} have nan".format(data_definition))
+
+            # write data
+            with SimpleTimer("Writing generated data {} to hdf5 file".format(data_definition),
                              end_in_new_line=False):
-                if key in self.h5f:
+                if str(data_definition) in self.h5f:
                     # self.h5f[key][...] = result
-                    raise NotImplementedError("Overwriting not supported.")
+                    raise NotImplementedError("Overwriting not supported. Please report an issue.")
                 else:
-                    h5sparse.Group(self.h5f).create_dataset(key, data=result)
+                    h5sparse.Group(self.h5f).create_dataset(str(data_definition), data=result)
         self.h5f.flush()
 
 
@@ -149,15 +151,15 @@ class PandasHDFDataHandler(DataHandler):
             mkdir_p(hdf_dir)
         self.hdf_store = pd.HDFStore(hdf_path)
 
-    def can_skip(self, data_key):
-        if data_key in self.hdf_store:
+    def can_skip(self, data_definition):
+        if str(data_definition) in self.hdf_store:
             return True
         return False
 
-    def get(self, key):
-        if isinstance(key, basestring):
-            return PandasHDFDataset(self.hdf_store, key)
-        return {k: PandasHDFDataset(self.hdf_store, k) for k in key}
+    def get(self, data_definition):
+        if isinstance(data_definition, DataDefinition):
+            return PandasHDFDataset(self.hdf_store, str(data_definition))
+        return {k: PandasHDFDataset(self.hdf_store, str(k)) for k in data_definition}
 
     def get_function_kwargs(self, will_generate_keys, data,
                             manually_append=False):
@@ -186,7 +188,8 @@ class PandasHDFDataHandler(DataHandler):
                                    function_name, handler_key)
 
     def write_data(self, result_dict):
-        for key, result in six.viewitems(result_dict):
+        for data_definition, result in six.viewitems(result_dict):
+            # check nan
             is_null = False
             if isinstance(result, pd.DataFrame):
                 if result.isnull().any().any():
@@ -196,23 +199,24 @@ class PandasHDFDataHandler(DataHandler):
                     is_null = True
             else:
                 raise ValueError("PandasHDFDataHandler doesn't support type "
-                                 "{} (in key {})".format(type(result), key))
+                                 "{} (in key {})".format(type(result), data_definition))
             if is_null:
-                raise ValueError("data {} have nan".format(key))
-            with SimpleTimer("Writing generated data {} to hdf5 file"
-                             .format(key),
+                raise ValueError("data {} have nan".format(data_definition))
+
+            # write data
+            with SimpleTimer("Writing generated data {} to hdf5 file".format(data_definition),
                              end_in_new_line=False):
                 if (isinstance(result, pd.DataFrame)
                         and isinstance(result.index, pd.MultiIndex)
                         and isinstance(result.columns, pd.MultiIndex)):
-                    self.hdf_store.put(key, result)
+                    self.hdf_store.put(str(data_definition), result)
                 else:
-                    self.hdf_store.put(key, result, format='table')
+                    self.hdf_store.put(str(data_definition), result, format='table')
         self.hdf_store.flush(fsync=True)
 
-    def bundle(self, key, path, new_key):
+    def bundle(self, data_definition, path, new_key):
         """Copy the data to another HDF5 file with new key."""
-        data = self.get(key).value
+        data = self.get(data_definition).value
         data.to_hdf(path, new_key)
 
 
@@ -221,15 +225,15 @@ class MemoryDataHandler(DataHandler):
     def __init__(self):
         self.data = {}
 
-    def can_skip(self, data_key):
-        if data_key in self.data:
+    def can_skip(self, data_definition):
+        if data_definition in self.data:
             return True
         return False
 
-    def get(self, key):
-        if isinstance(key, basestring):
-            return self.data[key]
-        return {k: self.data[k] for k in key}
+    def get(self, data_definition):
+        if isinstance(data_definition, DataDefinition):
+            return self.data[data_definition]
+        return {k: self.data[k] for k in data_definition}
 
     def write_data(self, result_dict):
         self.data.update(result_dict)
@@ -241,26 +245,26 @@ class PickleDataHandler(DataHandler):
         mkdir_p(pickle_dir)
         self.pickle_dir = pickle_dir
 
-    def can_skip(self, data_key):
-        data_path = os.path.join(self.pickle_dir, data_key + ".pkl")
+    def can_skip(self, data_definition):
+        data_path = os.path.join(self.pickle_dir, str(data_definition) + ".pkl")
         if os.path.exists(data_path):
             return True
         return False
 
-    def get(self, key):
-        if isinstance(key, basestring):
-            with open(os.path.join(self.pickle_dir, key + ".pkl"), "rb") as fp:
+    def get(self, data_definition):
+        if isinstance(data_definition, DataDefinition):
+            with open(os.path.join(self.pickle_dir, str(data_definition) + ".pkl"), "rb") as fp:
                 return cPickle.load(fp)
         data = {}
-        for k in key:
-            with open(os.path.join(self.pickle_dir, k + ".pkl"), "rb") as fp:
-                data[k] = cPickle.load(fp)
+        for data_def in data_definition:
+            with open(os.path.join(self.pickle_dir, str(data_def) + ".pkl"), "rb") as fp:
+                data[data_def] = cPickle.load(fp)
         return data
 
     def write_data(self, result_dict):
-        for key, val in six.viewitems(result_dict):
-            pickle_path = os.path.join(self.pickle_dir, key + ".pkl")
-            with SimpleTimer("Writing generated data %s to pickle file" % key,
+        for data_definition, val in six.viewitems(result_dict):
+            pickle_path = os.path.join(self.pickle_dir, str(data_definition) + ".pkl")
+            with SimpleTimer("Writing generated data %s to pickle file" % data_definition,
                              end_in_new_line=False), \
                     open(pickle_path, "wb") as fp:
                 cPickle.dump(val, fp, protocol=cPickle.HIGHEST_PROTOCOL)

@@ -7,33 +7,46 @@ import h5py
 import six
 from bistiming import IterTimer, SimpleTimer
 
+from .data_definition import DataDefinition
 
-def get_data_keys_from_structure(structure):
-    data_keys = []
+
+def get_data_definitions_from_structure(structure):
+    data_definitions = []
 
     def _get_data_keys_from_structure(structure):
         if isinstance(structure, basestring):
-            data_keys.append(structure)
+            data_definitions.append(DataDefinition(structure))
         elif isinstance(structure, list):
-            data_keys.extend(structure)
+            for raw_data_def in structure:
+                if isinstance(raw_data_def, dict):
+                    data_definitions.append(
+                        DataDefinition(raw_data_def['key'], raw_data_def['args']))
+                elif isinstance(raw_data_def, basestring):
+                    data_definitions.append(DataDefinition(raw_data_def))
+                else:
+                    raise TypeError("The bundle structure in list only support "
+                                    "dict and str, but got {}.".format(structure))
         elif isinstance(structure, dict):
-            for _, val in six.viewitems(structure):
-                _get_data_keys_from_structure(val)
+            if 'key' in structure:
+                data_definitions.append(DataDefinition(structure['key'], structure['args']))
+            else:
+                for _, val in six.viewitems(structure):
+                    _get_data_keys_from_structure(val)
         else:
             raise TypeError("The bundle structure only support "
-                            "dict, list and str.")
+                            "dict, list and str, but got {}.".format(structure))
     _get_data_keys_from_structure(structure)
 
-    return data_keys
+    return data_definitions
 
 
 class DataBundlerMixin(object):
 
-    def fill_concat_data(self, data_bundle_hdf_path, dset_name, data_keys,
+    def fill_concat_data(self, data_bundle_hdf_path, dset_name, data_definitions,
                          buffer_size=int(1e+9)):
         data_shapes = []
-        for data_key in data_keys:
-            data_shape = self.get(data_key).shape
+        for data_definition in data_definitions:
+            data_shape = self.get(data_definition).shape
             if len(data_shape) == 1:
                 data_shape += (1,)
             data_shapes.append(data_shape)
@@ -54,9 +67,8 @@ class DataBundlerMixin(object):
                                   dtype=np.float32)
 
         data_d = 0
-        for data_i, (data_key, data_shape) in enumerate(
-                zip(data_keys, data_shapes)):
-            data = self.get(data_key)
+        for data_i, (data_definition, data_shape) in enumerate(zip(data_definitions, data_shapes)):
+            data = self.get(data_definition)
             if isinstance(data, pd.DataFrame):
                 data = data.values
             batch_size = buffer_size // (data.dtype.itemsize * data_shape[1])
@@ -65,7 +77,7 @@ class DataBundlerMixin(object):
                       "instance. Trying to use more memory.")
                 batch_size = 1
             with IterTimer("({}/{}) Filling {}"
-                           .format(data_i + 1, len(data_keys), data_key),
+                           .format(data_i + 1, len(data_definitions), data_definition),
                            data_shape[0]) as timer:
                 for batch_start in range(0, data_shape[0], batch_size):
                     timer.update(batch_start)
@@ -90,14 +102,17 @@ class DataBundlerMixin(object):
         def _bundle_data(structure, structure_config, dset_name=""):
             if isinstance(structure, basestring) and dset_name != "":
                 (self.get_handler(structure)
-                 .bundle(structure, data_bundle_hdf_path, dset_name))
+                 .bundle(DataDefinition(structure), data_bundle_hdf_path, dset_name))
             elif isinstance(structure, list):
+                data_definitions = get_data_definitions_from_structure(structure)
                 if structure_config.get('concat', False):
-                    self.fill_concat_data(data_bundle_hdf_path, dset_name, structure, buffer_size)
+                    self.fill_concat_data(
+                        data_bundle_hdf_path, dset_name, data_definitions, buffer_size)
                 else:
-                    for data_key in structure:
-                        (self.get_handler(data_key)
-                         .bundle(data_key, data_bundle_hdf_path, dset_name + "/" + data_key))
+                    for data_definition in data_definitions:
+                        (self.get_handler(data_definition.key)
+                         .bundle(data_definition,
+                                 data_bundle_hdf_path, dset_name + "/" + data_definition.key))
             elif isinstance(structure, dict):
                 for key, val in six.viewitems(structure):
                     _bundle_data(val, structure_config.get(key, {}), dset_name + "/" + key)
