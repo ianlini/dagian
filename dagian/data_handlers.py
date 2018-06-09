@@ -43,11 +43,11 @@ def check_exact_match_keys(result_dict_key_set, will_generate_key_set,
 class DataHandler(six.with_metaclass(ABCMeta, object)):
 
     @abstractmethod
-    def can_skip(self, data_key):
+    def can_skip(self, data_definition):
         pass
 
     @abstractmethod
-    def get(self, keys):
+    def get(self, data_definition):
         pass
 
     def get_function_kwargs(self, will_generate_keys, data):
@@ -83,15 +83,15 @@ class H5pyDataHandler(DataHandler):
             mkdir_p(hdf_dir)
         self.h5f = h5py.File(hdf_path, 'a')
 
-    def can_skip(self, data_key):
-        if data_key in self.h5f:
+    def can_skip(self, data_definition):
+        if str(data_definition) in self.h5f:
             return True
         return False
 
-    def get(self, key):
-        if isinstance(key, basestring):
-            return h5sparse.Group(self.h5f)[key]
-        return {k: h5sparse.Group(self.h5f)[k] for k in key}
+    def get(self, data_definition):
+        if isinstance(data_definition, basestring):
+            return h5sparse.Group(self.h5f)[data_definition]
+        return {k: h5sparse.Group(self.h5f)[k] for k in data_definition}
 
     def get_function_kwargs(self, will_generate_keys, data,
                             manually_create_dataset=False):
@@ -150,15 +150,15 @@ class PandasHDFDataHandler(DataHandler):
             mkdir_p(hdf_dir)
         self.hdf_store = pd.HDFStore(hdf_path)
 
-    def can_skip(self, data_key):
-        if data_key in self.hdf_store:
+    def can_skip(self, data_definition):
+        if str(data_definition) in self.hdf_store:
             return True
         return False
 
-    def get(self, key):
-        if isinstance(key, basestring):
-            return PandasHDFDataset(self.hdf_store, key)
-        return {k: PandasHDFDataset(self.hdf_store, k) for k in key}
+    def get(self, data_definition):
+        if isinstance(data_definition, basestring):
+            return PandasHDFDataset(self.hdf_store, data_definition)
+        return {k: PandasHDFDataset(self.hdf_store, k) for k in data_definition}
 
     def get_function_kwargs(self, will_generate_keys, data,
                             manually_append=False):
@@ -242,18 +242,18 @@ class PickleDataHandler(DataHandler):
         mkdir_p(pickle_dir)
         self.pickle_dir = pickle_dir
 
-    def can_skip(self, data_key):
-        data_path = os.path.join(self.pickle_dir, data_key + ".pkl")
+    def can_skip(self, data_definition):
+        data_path = os.path.join(self.pickle_dir, str(data_definition) + ".pkl")
         if os.path.exists(data_path):
             return True
         return False
 
-    def get(self, key):
-        if isinstance(key, basestring):
-            with open(os.path.join(self.pickle_dir, key + ".pkl"), "rb") as fp:
+    def get(self, data_definition):
+        if isinstance(data_definition, basestring):
+            with open(os.path.join(self.pickle_dir, data_definition + ".pkl"), "rb") as fp:
                 return cPickle.load(fp)
         data = {}
-        for k in key:
+        for k in data_definition:
             with open(os.path.join(self.pickle_dir, k + ".pkl"), "rb") as fp:
                 data[k] = cPickle.load(fp)
         return data
