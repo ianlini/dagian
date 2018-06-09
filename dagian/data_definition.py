@@ -30,7 +30,7 @@ class DataDefinition(frozendict):
         if len(self._args) == 0:
             return "DataDefinition({})".format(repr(self._key))
         arg_strs = ["%s: %s" % (repr(key), repr(self._args[key]))
-                    for key in sorted(six.viewkeys(self._args))]
+                    for key in sorted(six.viewkeys(self._args._dict))]
         args_str = "{%s}" % ", ".join(arg_strs)
         return "DataDefinition({}, {})".format(repr(self._key), args_str)
 
