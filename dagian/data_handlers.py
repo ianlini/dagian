@@ -1,3 +1,4 @@
+from __future__ import print_function, division, absolute_import, unicode_literals
 import os.path
 from abc import ABCMeta, abstractmethod
 from functools import partial
@@ -88,7 +89,6 @@ class H5pyDataHandler(DataHandler):
         return False
 
     def get(self, data_definition):
-        print(data_definition)
         if isinstance(data_definition, DataDefinition):
             return h5sparse.Group(self.h5f)[str(data_definition)]
         return {k: h5sparse.Group(self.h5f)[str(k)] for k in data_definition}

@@ -1,3 +1,6 @@
+from __future__ import print_function, division, absolute_import, unicode_literals
+
+
 def get_shape_from_pandas_hdf_storer(storer):
     # TODO: when the data has MultiIndex column and the format is 'fixed', the
     #       shape will be None
