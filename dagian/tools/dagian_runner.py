@@ -7,7 +7,7 @@ import yaml
 from mkdir_p import mkdir_p
 
 from .config import get_data_generator_from_config
-from ..bundling import get_data_keys_from_structure
+from ..bundling import get_data_definitions_from_structure
 
 
 def dagian_run_with_configs(global_config, bundle_config, dag_output_path=None,
@@ -30,8 +30,8 @@ def dagian_run_with_configs(global_config, bundle_config, dag_output_path=None,
         raise ValueError("bundle_config should be a "
                          "collections.Mapping object.")
     data_generator = get_data_generator_from_config(global_config)
-    data_keys = get_data_keys_from_structure(bundle_config['structure'])
-    data_generator.generate(data_keys, dag_output_path)
+    data_definitions = get_data_definitions_from_structure(bundle_config['structure'])
+    data_generator.generate(data_definitions, dag_output_path)
 
     if not no_bundle:
         mkdir_p(global_config['data_bundles_dir'])

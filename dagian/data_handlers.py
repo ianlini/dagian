@@ -14,6 +14,7 @@ import six
 from six.moves import cPickle
 
 from .data_wrappers import PandasHDFDataset
+from .dag import DataDefinition
 
 
 SPARSE_FORMAT_SET = set(['csr', 'csc'])
@@ -67,9 +68,9 @@ class DataHandler(six.with_metaclass(ABCMeta, object)):
     def write_data(self, result_dict):
         pass
 
-    def bundle(self, key, path, new_key):
+    def bundle(self, data_definition, path, new_key):
         """Copy the data to another HDF5 file with new key."""
-        data = self.get(key)
+        data = self.get(data_definition)
         with h5sparse.File(path) as h5f:
             h5f.create_dataset(new_key, data=data)
 
@@ -210,9 +211,9 @@ class PandasHDFDataHandler(DataHandler):
                     self.hdf_store.put(key, result, format='table')
         self.hdf_store.flush(fsync=True)
 
-    def bundle(self, key, path, new_key):
+    def bundle(self, data_definition, path, new_key):
         """Copy the data to another HDF5 file with new key."""
-        data = self.get(key).value
+        data = self.get(data_definition).value
         data.to_hdf(path, new_key)
 
 
@@ -221,15 +222,15 @@ class MemoryDataHandler(DataHandler):
     def __init__(self):
         self.data = {}
 
-    def can_skip(self, data_key):
-        if data_key in self.data:
+    def can_skip(self, data_definition):
+        if data_definition in self.data:
             return True
         return False
 
-    def get(self, key):
-        if isinstance(key, basestring):
-            return self.data[key]
-        return {k: self.data[k] for k in key}
+    def get(self, data_definition):
+        if isinstance(data_definition, DataDefinition):
+            return self.data[data_definition]
+        return {k: self.data[k] for k in data_definition}
 
     def write_data(self, result_dict):
         self.data.update(result_dict)

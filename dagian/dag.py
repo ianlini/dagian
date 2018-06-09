@@ -157,6 +157,7 @@ class DataGraph(object):
                 key=tuple(node_attrs['output_configs'].keys()))
 
             if node_data_defs not in nx_digraph:
+                # TODO: check the argument
                 # ancestors of this node has not been grown
                 pre_key_template_dict = {key_template.format(**predecessor_def.args): key_template
                                          for key_template in node_attrs['requirements']}
@@ -184,8 +185,8 @@ class DataGraph(object):
         self._grow_ancestors(nx_digraph, root_node_key, data_definitions)
         return nx_digraph
 
-    def draw(self, path, keys, root_node_key='root', reverse=False):
-        nx_digraph = self.build_directed_graph(keys, root_node_key)
+    def draw(self, path, data_definitions, root_node_key='root', reverse=False):
+        nx_digraph = self.build_directed_graph(data_definitions, root_node_key)
         if reverse:
             nx_digraph.reverse(copy=False)
         draw_dag(nx_digraph, path)

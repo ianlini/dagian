@@ -3,7 +3,7 @@ from os.path import abspath, dirname, join
 from shutil import rmtree
 from tempfile import mkdtemp
 
-from dagian.bundling import get_data_keys_from_structure
+from dagian.bundling import get_data_definitions_from_structure
 from dagian.tools.dagian_runner import dagian_run_with_configs
 import h5py
 import yaml
@@ -36,7 +36,7 @@ class LifetimeFeaturesGeneratorTest(unittest.TestCase):
         with h5py.File(h5py_hdf_path, "r") as global_data_h5f, \
                 h5py.File(data_bundle_hdf_path, "r") as data_bundle_h5f:
             assert (set(global_data_h5f)
-                    == set(get_data_keys_from_structure(
+                    == set(get_data_definitions_from_structure(
                         bundle_config['structure'])))
             assert set(data_bundle_h5f) == {'features', 'test_filters', 'label'}
             assert set(data_bundle_h5f['test_filters']) == {'is_in_test_set'}

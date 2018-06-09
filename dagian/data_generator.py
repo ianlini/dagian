@@ -5,7 +5,7 @@ import six
 import networkx as nx
 from bistiming import SimpleTimer
 
-from .dag import DataGraph, draw_dag, to_data_definitions
+from .dag import DataGraph, draw_dag, to_data_definitions, DataDefinition
 from .bundling import DataBundlerMixin
 from .data_handlers import (
     MemoryDataHandler,
@@ -81,9 +81,9 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
         handler = self._handlers[handler_name]
         return handler
 
-    def get(self, key):
-        handler = self.get_handler(key)
-        data = handler.get(key)
+    def get(self, data_definition):
+        handler = self.get_handler(data_definition)
+        data = handler.get(data_definition)
         return data
 
     def _dag_prune_can_skip(self, nx_digraph, generation_order):
@@ -103,8 +103,7 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
                     for required_data_def in required_data_defs:
                         key_info = key_info_dict[required_data_def.key]
                         if 'can_skip' not in key_info:
-                            key_info['can_skip'] = key_info['handler'].can_skip(
-                                required_data_def.key)
+                            key_info['can_skip'] = key_info['handler'].can_skip(required_data_def)
                         if key_info['can_skip']:
                             edge_attr['skipped_data'].add(required_data_def)
                         else:
@@ -133,7 +132,7 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
                     continue
                 source_handler = self._handlers[config['handler']]
                 template_key = edge_attrs['template_key_dict'][key]
-                formatted_key_data = source_handler.get(key)
+                formatted_key_data = source_handler.get(DataDefinition(key))
                 data[template_key] = formatted_key_data
         return data
 
@@ -167,23 +166,19 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
         # group the data by handler
         handler_data_dict = defaultdict(dict)
         for key, config in six.viewitems(output_configs):
-            handler_data_dict[config['handler']][key] = result_dict[key]
+            data_definition = data_definitions.replace(key=key)
+            handler_data_dict[config['handler']][data_definition] = result_dict[key]
         # write the data for each handler
         for handler_name, data_dict in six.viewitems(handler_data_dict):
             handler = self._handlers[handler_name]
             handler.write_data(data_dict)
 
-    def generate(self, raw_data_definitions, dag_output_path=None):
+    def generate(self, data_definitions, dag_output_path=None):
         """
         Parameters
         ----------
-        raw_data_definitions: Union[str, Mapping]
-            Accept 2 formats of data definition:
-            1. str format
-            2. Mapping with key ``key`` and ``args``
+        data_definitions: Sequence[DataDefinition]
         """
-        data_definitions = to_data_definitions(raw_data_definitions)
-
         involved_dag, generation_order = self.build_involved_dag(data_definitions)
         if dag_output_path is not None:
             draw_dag(involved_dag, dag_output_path)
@@ -200,9 +195,9 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
         return involved_dag
 
     @classmethod
-    def draw_dag(cls, path, raw_data_definitions):
+    def draw_dag(cls, path, data_definitions):
         # pylint: disable=protected-access
-        dag = cls._dag.draw(path, raw_data_definitions, root_node_key='generate')
+        dag = cls._dag.draw(path, data_definitions, root_node_key='generate')
         if not nx.is_directed_acyclic_graph(dag):
             print("Warning! The graph is not acyclic!")
 
