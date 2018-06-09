@@ -158,9 +158,9 @@ class PandasHDFDataHandler(DataHandler):
         return False
 
     def get(self, data_definition):
-        if isinstance(data_definition, basestring):
-            return PandasHDFDataset(self.hdf_store, data_definition)
-        return {k: PandasHDFDataset(self.hdf_store, k) for k in data_definition}
+        if isinstance(data_definition, DataDefinition):
+            return PandasHDFDataset(self.hdf_store, str(data_definition))
+        return {k: PandasHDFDataset(self.hdf_store, str(k)) for k in data_definition}
 
     def get_function_kwargs(self, will_generate_keys, data,
                             manually_append=False):
@@ -189,7 +189,8 @@ class PandasHDFDataHandler(DataHandler):
                                    function_name, handler_key)
 
     def write_data(self, result_dict):
-        for key, result in six.viewitems(result_dict):
+        for data_definition, result in six.viewitems(result_dict):
+            # check nan
             is_null = False
             if isinstance(result, pd.DataFrame):
                 if result.isnull().any().any():
@@ -199,18 +200,19 @@ class PandasHDFDataHandler(DataHandler):
                     is_null = True
             else:
                 raise ValueError("PandasHDFDataHandler doesn't support type "
-                                 "{} (in key {})".format(type(result), key))
+                                 "{} (in key {})".format(type(result), data_definition))
             if is_null:
-                raise ValueError("data {} have nan".format(key))
-            with SimpleTimer("Writing generated data {} to hdf5 file"
-                             .format(key),
+                raise ValueError("data {} have nan".format(data_definition))
+
+            # write data
+            with SimpleTimer("Writing generated data {} to hdf5 file".format(data_definition),
                              end_in_new_line=False):
                 if (isinstance(result, pd.DataFrame)
                         and isinstance(result.index, pd.MultiIndex)
                         and isinstance(result.columns, pd.MultiIndex)):
-                    self.hdf_store.put(key, result)
+                    self.hdf_store.put(str(data_definition), result)
                 else:
-                    self.hdf_store.put(key, result, format='table')
+                    self.hdf_store.put(str(data_definition), result, format='table')
         self.hdf_store.flush(fsync=True)
 
     def bundle(self, data_definition, path, new_key):
@@ -252,18 +254,18 @@ class PickleDataHandler(DataHandler):
 
     def get(self, data_definition):
         if isinstance(data_definition, basestring):
-            with open(os.path.join(self.pickle_dir, data_definition + ".pkl"), "rb") as fp:
+            with open(os.path.join(self.pickle_dir, str(data_definition) + ".pkl"), "rb") as fp:
                 return cPickle.load(fp)
         data = {}
-        for k in data_definition:
-            with open(os.path.join(self.pickle_dir, k + ".pkl"), "rb") as fp:
-                data[k] = cPickle.load(fp)
+        for data_def in data_definition:
+            with open(os.path.join(self.pickle_dir, str(data_def) + ".pkl"), "rb") as fp:
+                data[data_def] = cPickle.load(fp)
         return data
 
     def write_data(self, result_dict):
-        for key, val in six.viewitems(result_dict):
-            pickle_path = os.path.join(self.pickle_dir, key + ".pkl")
-            with SimpleTimer("Writing generated data %s to pickle file" % key,
+        for data_definition, val in six.viewitems(result_dict):
+            pickle_path = os.path.join(self.pickle_dir, str(data_definition) + ".pkl")
+            with SimpleTimer("Writing generated data %s to pickle file" % data_definition,
                              end_in_new_line=False), \
                     open(pickle_path, "wb") as fp:
                 cPickle.dump(val, fp, protocol=cPickle.HIGHEST_PROTOCOL)
