@@ -89,9 +89,9 @@ class H5pyDataHandler(DataHandler):
         return False
 
     def get(self, data_definition):
-        if isinstance(data_definition, basestring):
-            return h5sparse.Group(self.h5f)[data_definition]
-        return {k: h5sparse.Group(self.h5f)[k] for k in data_definition}
+        if isinstance(data_definition, DataDefinition):
+            return h5sparse.Group(self.h5f)[str(data_definition)]
+        return {k: h5sparse.Group(self.h5f)[str(k)] for k in data_definition}
 
     def get_function_kwargs(self, will_generate_keys, data,
                             manually_create_dataset=False):
@@ -125,20 +125,22 @@ class H5pyDataHandler(DataHandler):
                                    function_name, handler_key)
 
     def write_data(self, result_dict):
-        for key, result in six.viewitems(result_dict):
+        for data_definition, result in six.viewitems(result_dict):
+            # chech nan
             if ss.isspmatrix(result):
                 if np.isnan(result.data).any():
-                    raise ValueError("data {} have nan".format(key))
+                    raise ValueError("data {} have nan".format(data_definition))
             elif np.isnan(result).any():
-                raise ValueError("data {} have nan".format(key))
-            with SimpleTimer("Writing generated data {} to hdf5 file"
-                             .format(key),
+                raise ValueError("data {} have nan".format(data_definition))
+
+            # write data
+            with SimpleTimer("Writing generated data {} to hdf5 file".format(data_definition),
                              end_in_new_line=False):
-                if key in self.h5f:
+                if str(data_definition) in self.h5f:
                     # self.h5f[key][...] = result
-                    raise NotImplementedError("Overwriting not supported.")
+                    raise NotImplementedError("Overwriting not supported. Please report an issue.")
                 else:
-                    h5sparse.Group(self.h5f).create_dataset(key, data=result)
+                    h5sparse.Group(self.h5f).create_dataset(str(data_definition), data=result)
         self.h5f.flush()
 
 
