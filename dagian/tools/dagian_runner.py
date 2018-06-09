@@ -62,9 +62,9 @@ def dagian_run(argv=sys.argv[1:]):
                         help="not generate the data bundle")
     args = parser.parse_args(argv)
     with open(args.global_config) as fp:
-        global_config = yaml.load(fp)
+        global_config = yaml.safe_load(fp)
     with open(args.bundle_config) as fp:
-        bundle_config = yaml.load(fp)
+        bundle_config = yaml.safe_load(fp)
     filename_without_extension = splitext(basename(args.bundle_config))[0]
     bundle_config.setdefault('name', filename_without_extension)
     dagian_run_with_configs(global_config, bundle_config, args.dag_output_path,

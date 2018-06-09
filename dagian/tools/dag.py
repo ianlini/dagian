@@ -30,9 +30,9 @@ def draw_dag(argv=sys.argv[1:]):
                              "(default: False)")
     args = parser.parse_args(argv)
     with open(args.global_config) as fp:
-        global_config = yaml.load(fp)
+        global_config = yaml.safe_load(fp)
     with open(args.bundle_config) as fp:
-        bundle_config = yaml.load(fp)
+        bundle_config = yaml.safe_load(fp)
     data_definitions = get_data_definitions_from_structure(bundle_config['structure'])
     if args.involved:
         data_generator = get_data_generator_from_config(global_config)

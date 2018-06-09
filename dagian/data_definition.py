@@ -1,4 +1,7 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
+from collections import OrderedDict
+import json
+
 import six
 from frozendict import frozendict
 
@@ -37,3 +40,10 @@ class DataDefinition(frozendict):
 
     def __repr__(self):
         return str(self)
+
+    def json(self):
+        ordered_args = ((key, self._args[key]) for key in sorted(six.viewkeys(self._args._dict)))
+        ordered_data_def = OrderedDict((('key', self._key),
+                                        ('args', OrderedDict(ordered_args))))
+        json_str = json.dumps(ordered_data_def)
+        return json_str
