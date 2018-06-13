@@ -2,11 +2,11 @@ from __future__ import print_function, division, absolute_import, unicode_litera
 from io import StringIO
 
 import dagian
+from dagian import Argument as A
 from dagian.decorators import (
     require,
     will_generate,
     params,
-    Argument as A,
 )
 import numpy as np
 import pandas as pd

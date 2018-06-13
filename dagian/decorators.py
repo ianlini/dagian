@@ -2,27 +2,11 @@ from __future__ import print_function, division, absolute_import, unicode_litera
 import re
 
 from past.builtins import basestring
-from frozendict import frozendict
 
 from .data_definition import RequirementDefinition
 
 
 DATA_KEY_PATTERN = re.compile(r'^[_a-zA-Z][_a-zA-Z0-9]*$')
-
-
-class Argument(object):
-    """Represent how the argument is passed from downstream to upstream.
-
-    Parameters
-    ----------
-    parameter : str
-        The name of the parameter from downstream data definition.
-    callable : Optional[Callable]
-        The callable to be applied on the downstream argument. If None, use identity function.
-    """
-    def __init__(self, parameter, callable=None, template=None):
-        self.parameter = parameter
-        self.callable = callable
 
 
 def require(data_key, **kwargs):

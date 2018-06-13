@@ -104,8 +104,10 @@ class DataGraph(object):
                 # TODO: check the argument
                 # ancestors of this node has not been grown
                 pre_key_template_dict = {
-                    DataDefinition(key_template.format(**predecessor_def.args)): key_template
-                    for key_template in node_attrs['requirements']}
+                    req.eval_data_definition(predecessor_def.args): req.key
+                    for req in node_attrs['requirements']}
+                if len(pre_key_template_dict) != len(six.viewvalues(pre_key_template_dict)):
+                    raise ValueError("Duplicated template key: {}".format(pre_key_template_dict))
                 nx_digraph.add_node(node_data_defs, **node_attrs)
                 requirement_defs = list(pre_key_template_dict.keys())
                 self._grow_ancestors(

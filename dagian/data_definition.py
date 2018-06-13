@@ -6,13 +6,14 @@ import six
 from frozendict import frozendict
 
 
-class DataDefinition(object):
+class DataDefinition(frozendict):
     def __init__(self, key, args=None):
         self._key = key
         if args is None:
             self._args = frozendict()
         else:
             self._args = frozendict(args)
+        super(DataDefinition, self).__init__(key=key, args=self._args)
 
     @property
     def key(self):
@@ -54,5 +55,29 @@ class DataDefinition(object):
         return NotImplemented
 
 
+class Argument(object):
+    """Represent how the argument is passed from downstream to upstream.
+
+    Parameters
+    ----------
+    parameter : str
+        The name of the parameter from downstream data definition.
+    callable : Optional[Callable]
+        The callable to be applied on the downstream argument. If None, use identity function.
+    """
+    def __init__(self, parameter, callable=None, template=None):
+        self.parameter = parameter
+        self.callable = callable
+
+    def eval(self, args):
+        if self.callable is None:
+            return args[self.parameter]
+        return self.callable(args[self.parameter])
+
+
 class RequirementDefinition(DataDefinition):
-    pass
+    def eval_data_definition(self, args):
+        new_key = self.key.format(**args)
+        new_args = {key: arg.eval(args) for key, arg in six.viewitems(self.args)}
+        data_definition = DataDefinition(new_key, new_args)
+        return data_definition
