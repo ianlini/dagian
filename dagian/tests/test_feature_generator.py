@@ -54,7 +54,7 @@ def test_generate_lifetime_features():
                 'BMI',
                 {'key': 'division',
                  'args': {'dividend': 'weight',
-                          'divisor': 'height'}}
+                          'divisor': 'height'}},
             ],
         },
         'structure_config': {

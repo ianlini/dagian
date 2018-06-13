@@ -6,14 +6,13 @@ import six
 from frozendict import frozendict
 
 
-class DataDefinition(frozendict):
+class DataDefinition(object):
     def __init__(self, key, args=None):
         self._key = key
         if args is None:
             self._args = frozendict()
         else:
             self._args = frozendict(args)
-        super(DataDefinition, self).__init__(key=key, args=self._args)
 
     @property
     def key(self):
@@ -31,12 +30,13 @@ class DataDefinition(frozendict):
         return DataDefinition(key=key, args=args)
 
     def __str__(self):
+        class_name = type(self).__name__
         if len(self._args) == 0:
-            return "DataDefinition({})".format(repr(self._key))
+            return "{}({})".format(class_name, repr(self._key))
         arg_strs = ["%s: %s" % (repr(key), repr(self._args[key]))
                     for key in sorted(six.viewkeys(self._args._dict))]
         args_str = "{%s}" % ", ".join(arg_strs)
-        return "DataDefinition({}, {})".format(repr(self._key), args_str)
+        return "{}({}, {})".format(class_name, repr(self._key), args_str)
 
     def __repr__(self):
         return str(self)
@@ -47,3 +47,12 @@ class DataDefinition(frozendict):
                                         ('args', OrderedDict(ordered_args))))
         json_str = json.dumps(ordered_data_def)
         return json_str
+
+    def __lt__(self, other):
+        if isinstance(other, DataDefinition):
+            return (self.key, self.args) < (other.key, other.args)
+        return NotImplemented
+
+
+class RequirementDefinition(DataDefinition):
+    pass

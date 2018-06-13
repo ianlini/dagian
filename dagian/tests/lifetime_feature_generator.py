@@ -6,6 +6,7 @@ from dagian.decorators import (
     require,
     will_generate,
     params,
+    Argument as A,
 )
 import numpy as np
 import pandas as pd
@@ -88,6 +89,14 @@ id,lifetime,tested_age,weight,height,gender,income
     @params('dividend', 'divisor')
     def gen_division(self, upstream_data, args):
         division_result = upstream_data['{dividend}'].value / upstream_data['{divisor}'].value
+        return {'division': division_result}
+
+    @require('division', dividend=A('dividend'), divisor=A('divisor1'))
+    @require('{divisor2}')
+    @will_generate('h5py', 'division_2_divisor')
+    @params('dividend', 'divisor1', 'divisor2')
+    def gen_division_2_divisor(self, upstream_data, args):
+        division_result = upstream_data['division'].value / upstream_data['{divisor2}'].value
         return {'division': division_result}
 
     @require('data_df')
