@@ -78,6 +78,6 @@ class Argument(object):
 class RequirementDefinition(DataDefinition):
     def eval_data_definition(self, args):
         new_key = self.key.format(**args)
-        new_args = {key: arg.eval(args) for key, arg in six.viewitems(self.args)}
+        new_args = {key: arg.eval(args) for key, arg in six.viewitems(self.args._dict)}
         data_definition = DataDefinition(new_key, new_args)
         return data_definition
