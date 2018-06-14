@@ -97,7 +97,7 @@ id,lifetime,tested_age,weight,height,gender,income
     @params('dividend', 'divisor1', 'divisor2')
     def gen_division_2_divisor(self, upstream_data, args):
         division_result = upstream_data['division'].value / upstream_data['{divisor2}'].value
-        return {'division': division_result}
+        return {'division_2_divisor': division_result}
 
     @require('data_df')
     @will_generate('pickle', 'train_test_split')

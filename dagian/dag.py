@@ -119,7 +119,7 @@ class DataGraph(object):
             edge_attr = nx_digraph.edges[node_data_defs, root_node_key]
             edge_attr['data_definitions'].add(predecessor_def)
             template_key = key_template_dict.get(predecessor_def, predecessor_def.key)
-            edge_attr['template_key_dict'][predecessor_def.key] = template_key
+            edge_attr['template_key_dict'][predecessor_def] = template_key
 
     def build_directed_graph(self, data_definitions, root_node_key='root'):
         """
