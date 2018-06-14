@@ -2,6 +2,7 @@ from __future__ import print_function, division, absolute_import, unicode_litera
 from io import StringIO
 
 import dagian
+from dagian import Argument as A
 from dagian.decorators import (
     require,
     will_generate,
@@ -89,6 +90,22 @@ id,lifetime,tested_age,weight,height,gender,income
     def gen_division(self, upstream_data, args):
         division_result = upstream_data['{dividend}'].value / upstream_data['{divisor}'].value
         return {'division': division_result}
+
+    @require('division', dividend=A('dividend'), divisor=A('divisor1'))
+    @require('{divisor2}')
+    @will_generate('h5py', 'division_2_divisor')
+    @params('dividend', 'divisor1', 'divisor2')
+    def gen_division_2_divisor(self, upstream_data, args):
+        division_result = upstream_data['division'].value / upstream_data['{divisor2}'].value
+        return {'division_2_divisor': division_result}
+
+    @require('division', dividend=A('dividend', lambda x: 'pd_' + x), divisor=A('divisor1'))
+    @require(A('divisor2'))
+    @will_generate('h5py', 'division_pd_2_divisor')
+    @params('dividend', 'divisor1', 'divisor2')
+    def gen_division_pd_2_divisor(self, upstream_data, args):
+        division_result = upstream_data['division'].value / upstream_data['divisor2'].value
+        return {'division_pd_2_divisor': division_result}
 
     @require('data_df')
     @will_generate('pickle', 'train_test_split')
