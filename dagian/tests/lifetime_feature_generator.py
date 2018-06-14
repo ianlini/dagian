@@ -99,6 +99,14 @@ id,lifetime,tested_age,weight,height,gender,income
         division_result = upstream_data['division'].value / upstream_data['{divisor2}'].value
         return {'division_2_divisor': division_result}
 
+    @require('division', dividend=A('dividend', lambda x: 'pd_' + x), divisor=A('divisor1'))
+    @require(A('divisor2'))
+    @will_generate('h5py', 'division_pd_2_divisor')
+    @params('dividend', 'divisor1', 'divisor2')
+    def gen_division_pd_2_divisor(self, upstream_data, args):
+        division_result = upstream_data['division'].value / upstream_data['divisor2'].value
+        return {'division_pd_2_divisor': division_result}
+
     @require('data_df')
     @will_generate('pickle', 'train_test_split')
     def gen_train_test_split(self, upstream_data):

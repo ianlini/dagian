@@ -6,7 +6,6 @@ import six
 import networkx as nx
 from bistiming import SimpleTimer
 
-from .data_definition import DataDefinition
 from .dag import DataGraph, draw_dag
 from .bundling import DataBundlerMixin
 from .data_handlers import (

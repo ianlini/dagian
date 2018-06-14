@@ -3,6 +3,7 @@ from collections import OrderedDict
 import json
 
 import six
+from past.builtins import basestring
 from frozendict import frozendict
 
 
@@ -65,7 +66,8 @@ class Argument(object):
     callable : Optional[Callable]
         The callable to be applied on the downstream argument. If None, use identity function.
     """
-    def __init__(self, parameter, callable=None, template=None):
+
+    def __init__(self, parameter, callable=None):
         self.parameter = parameter
         self.callable = callable
 
@@ -74,10 +76,46 @@ class Argument(object):
             return args[self.parameter]
         return self.callable(args[self.parameter])
 
+    def __str__(self):
+        return "Argument(%s)" % repr(self.parameter)
+
+    def __repr__(self):
+        return str(self)
+
+    def __gt__(self, other):
+        if isinstance(other, basestring):
+            return self.parameter > other
+        elif isinstance(other, Argument):
+            return self.parameter > other.parameter
+        return NotImplemented
+
+    def __lt__(self, other):
+        if isinstance(other, basestring):
+            return self.parameter < other
+        elif isinstance(other, Argument):
+            return self.parameter < other.parameter
+        return NotImplemented
+
 
 class RequirementDefinition(DataDefinition):
     def eval_data_definition(self, args):
-        new_key = self.key.format(**args)
-        new_args = {key: arg.eval(args) for key, arg in six.viewitems(self.args._dict)}
+        # evaluate key
+        if isinstance(self.key, Argument):
+            new_key = self.key.eval(args)
+        elif isinstance(self.key, basestring):
+            new_key = self.key.format(**args)
+        else:
+            raise ValueError("RequirementDefinition.key can only be Argument or str.")
+
+        # evaluate arguments
+        new_args = {}
+        for key, arg in six.viewitems(self.args._dict):
+            if isinstance(arg, Argument):
+                new_args[key] = arg.eval(args)
+            elif isinstance(arg, basestring):
+                new_args[key] = arg.format(**args)
+            else:
+                raise ValueError(
+                    "The values in RequirementDefinition.args can only be Argument or str.")
         data_definition = DataDefinition(new_key, new_args)
         return data_definition
