@@ -3,16 +3,18 @@ import re
 
 from past.builtins import basestring
 
+from .data_definition import RequirementDefinition
 
-DATA_KEY_PATTERN = re.compile(r'^[a-zA-Z][_a-zA-Z]*$')
+
+DATA_KEY_PATTERN = re.compile(r'^[_a-zA-Z][_a-zA-Z0-9]*$')
 
 
-def require(data_key):
+def require(data_key, **kwargs):
     def require_decorator(func):
         # pylint: disable=protected-access
         if not hasattr(func, '_dagian_requirements'):
             func._dagian_requirements = []
-        func._dagian_requirements.append(data_key)
+        func._dagian_requirements.append(RequirementDefinition(data_key, kwargs))
         return func
     return require_decorator
 

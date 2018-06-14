@@ -5,7 +5,7 @@ from mkdir_p import mkdir_p
 import six
 import networkx as nx
 
-from .data_definition import DataDefinition
+from .data_definition import Argument
 
 
 def draw_dag(nx_dag, path):
@@ -83,14 +83,14 @@ class DataGraph(object):
     def get_handler_name(self, key):
         return self._key_output_config_dict[key]['handler']
 
-    def _grow_ancestors(self, nx_digraph, root_node_key, predecessor_defs, key_template_dict=None):
+    def _grow_ancestors(self, nx_digraph, root_node_key, predecessor_defs, data_def_key_dict=None):
         """
         Parameters
         ----------
         predecessor_defs: Sequence[DataDefinition]
         """
-        if key_template_dict is None:
-            key_template_dict = {}
+        if data_def_key_dict is None:
+            data_def_key_dict = {}
 
         # grow the graph using DFS
         for predecessor_def in predecessor_defs:
@@ -101,23 +101,35 @@ class DataGraph(object):
                 key=tuple(node_attrs['output_configs'].keys()))
 
             if node_data_defs not in nx_digraph:
-                # TODO: check the argument
                 # ancestors of this node has not been grown
-                pre_key_template_dict = {
-                    DataDefinition(key_template.format(**predecessor_def.args)): key_template
-                    for key_template in node_attrs['requirements']}
+                # TODO: check the argument
+                # build DataDefinition -> template_key dict
+                pred_data_def_key_dict = {}
+                for req in node_attrs['requirements']:
+                    template_key = req.key
+                    if isinstance(template_key, Argument):
+                        template_key = template_key.parameter
+                    req_data_def = req.eval_data_definition(predecessor_def.args)
+                    pred_data_def_key_dict[req_data_def] = template_key
+
+                # check duplicated template_key
+                if len(pred_data_def_key_dict) != len(set(six.viewvalues(pred_data_def_key_dict))):
+                    raise ValueError("Duplicated template key: {}".format(pred_data_def_key_dict))
                 nx_digraph.add_node(node_data_defs, **node_attrs)
-                requirement_defs = list(pre_key_template_dict.keys())
+                requirement_defs = list(pred_data_def_key_dict.keys())
                 self._grow_ancestors(
-                    nx_digraph, node_data_defs, requirement_defs, pre_key_template_dict)
+                    nx_digraph, node_data_defs, requirement_defs, pred_data_def_key_dict)
+
             if not nx_digraph.has_edge(node_data_defs, root_node_key):
                 # initialize edge
                 nx_digraph.add_edge(
                     node_data_defs, root_node_key, data_definitions=set(), template_key_dict={})
+
+            # set edge attributes
             edge_attr = nx_digraph.edges[node_data_defs, root_node_key]
             edge_attr['data_definitions'].add(predecessor_def)
-            template_key = key_template_dict.get(predecessor_def, predecessor_def.key)
-            edge_attr['template_key_dict'][predecessor_def.key] = template_key
+            template_key = data_def_key_dict.get(predecessor_def, predecessor_def.key)
+            edge_attr['template_key_dict'][predecessor_def] = template_key
 
     def build_directed_graph(self, data_definitions, root_node_key='root'):
         """
