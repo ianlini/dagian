@@ -1,6 +1,7 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
 import inspect
 from collections import defaultdict
+from copy import deepcopy
 
 import six
 import networkx as nx
@@ -148,7 +149,7 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
         else:
             function_kwargs = {}
         if data_definitions.args:
-            function_kwargs['args'] = data_definitions.args
+            function_kwargs['args'] = deepcopy(data_definitions.args._dict)
 
         # TODO: add handler-specific arguments
         # handler = self._handlers[handler_key]
