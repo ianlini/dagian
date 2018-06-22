@@ -25,3 +25,6 @@ scikit-learn
 # progressbar
 # for Python 3: progressbar33
 progressbar33
+
+# for documentation
+sphinx
