@@ -102,33 +102,52 @@ class DataBundlerMixin(object):
 
         h5f.close()
 
+    def _bundle_list_in_structure(
+            self, structure, data_bundle_hdf_path, buffer_size, structure_config, dset_name):
+        data_definitions = get_data_definitions_from_list_in_structure(structure)
+        if structure_config.get('concat', False):
+            # write into single dataset
+            self.fill_concat_data(data_bundle_hdf_path, dset_name, data_definitions, buffer_size)
+        else:
+            key_set = set()
+            for data_definition in data_definitions:
+                if data_definition.key in key_set:
+                    raise ValueError("Duplicated key {} in a list structure."
+                                     "Use dict structure to distinguish them instead."
+                                     .format(data_definition.key))
+                key_set.add(data_definition.key)
+                self.get_handler(data_definition.key).bundle(
+                    data_definition, data_bundle_hdf_path, dset_name + "/" + data_definition.key)
+
+    def _bundle_dict_in_structure(
+            self, structure, data_bundle_hdf_path, buffer_size, structure_config, dset_name):
+        for key, val in six.viewitems(structure):
+            self._bundle(
+                val, data_bundle_hdf_path, buffer_size,
+                structure_config=structure_config.get(key, {}),
+                dset_name=dset_name + "/" + key)
+
+    def _bundle(
+            self, structure, data_bundle_hdf_path, buffer_size, structure_config, dset_name=""):
+        if isinstance(structure, basestring) and dset_name != "":
+            self.get_handler(structure).bundle(
+                DataDefinition(structure), data_bundle_hdf_path, dset_name)
+        elif isinstance(structure, list):
+            self._bundle_list_in_structure(
+                structure, data_bundle_hdf_path, buffer_size, structure_config, dset_name)
+        elif isinstance(structure, dict):
+            self._bundle_dict_in_structure(
+                structure, data_bundle_hdf_path, buffer_size, structure_config, dset_name)
+        else:
+            raise TypeError("The bundle structure only support "
+                            "dict, list and str (except the first layer).")
+
     def bundle(self, structure, data_bundle_hdf_path, buffer_size=int(1e+9),
                structure_config=None):
         if structure_config is None:
             structure_config = {}
 
-        def _bundle_data(structure, structure_config, dset_name=""):
-            if isinstance(structure, basestring) and dset_name != "":
-                (self.get_handler(structure)
-                 .bundle(DataDefinition(structure), data_bundle_hdf_path, dset_name))
-            elif isinstance(structure, list):
-                data_definitions = get_data_definitions_from_structure(structure)
-                if structure_config.get('concat', False):
-                    self.fill_concat_data(
-                        data_bundle_hdf_path, dset_name, data_definitions, buffer_size)
-                else:
-                    for data_definition in data_definitions:
-                        (self.get_handler(data_definition.key)
-                         .bundle(data_definition,
-                                 data_bundle_hdf_path, dset_name + "/" + data_definition.key))
-            elif isinstance(structure, dict):
-                for key, val in six.viewitems(structure):
-                    _bundle_data(val, structure_config.get(key, {}), dset_name + "/" + key)
-            else:
-                raise TypeError("The bundle structure only support "
-                                "dict, list and str (except the first layer).")
-
         if os.path.isfile(data_bundle_hdf_path):
             os.remove(data_bundle_hdf_path)
         with SimpleTimer("Bundling data"):
-            _bundle_data(structure, structure_config)
+            self._bundle(structure, data_bundle_hdf_path, buffer_size, structure_config)
