@@ -126,7 +126,7 @@ class H5pyDataHandler(DataHandler):
 
     def write_data(self, result_dict):
         for data_definition, result in six.viewitems(result_dict):
-            # chech nan
+            # check nan
             if ss.isspmatrix(result):
                 if np.isnan(result.data).any():
                     raise ValueError("data {} have nan".format(data_definition))
