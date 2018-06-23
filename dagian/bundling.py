@@ -123,7 +123,7 @@ class DataBundlerMixin(object):
             self, structure, data_bundle_hdf_path, buffer_size, structure_config, dset_name):
         if 'key' in structure:
             data_definition = DataDefinition(structure['key'], structure['args'])
-            self.get_handler(structure).bundle(
+            self.get_handler(data_definition.key).bundle(
                 data_definition, data_bundle_hdf_path, dset_name)
         else:
             for key, val in six.viewitems(structure):
