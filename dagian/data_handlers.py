@@ -2,6 +2,7 @@ from __future__ import print_function, division, absolute_import, unicode_litera
 import os.path
 from abc import ABCMeta, abstractmethod
 from functools import partial
+import warnings
 
 from bistiming import SimpleTimer
 import h5py
@@ -12,6 +13,7 @@ import pandas as pd
 import scipy.sparse as ss
 import six
 from six.moves import cPickle
+from tables import NaturalNameWarning
 
 from .data_wrappers import PandasHDFDataset
 from .data_definition import DataDefinition
@@ -206,7 +208,9 @@ class PandasHDFDataHandler(DataHandler):
 
             # write data
             with SimpleTimer("Writing generated data {} to hdf5 file".format(data_definition),
-                             end_in_new_line=False):
+                             end_in_new_line=False), \
+                    warnings.catch_warnings():
+                warnings.simplefilter('ignore', NaturalNameWarning)
                 if (isinstance(result, pd.DataFrame)
                         and isinstance(result.index, pd.MultiIndex)
                         and isinstance(result.columns, pd.MultiIndex)):
