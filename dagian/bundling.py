@@ -11,33 +11,40 @@ from bistiming import IterTimer, SimpleTimer
 from .data_definition import DataDefinition
 
 
-def get_data_definitions_from_structure(structure):
+def get_data_definitions_from_list_in_structure(structure):
     data_definitions = []
-
-    def _get_data_keys_from_structure(structure):
-        if isinstance(structure, basestring):
-            data_definitions.append(DataDefinition(structure))
-        elif isinstance(structure, list):
-            for raw_data_def in structure:
-                if isinstance(raw_data_def, dict):
-                    data_definitions.append(
-                        DataDefinition(raw_data_def['key'], raw_data_def['args']))
-                elif isinstance(raw_data_def, basestring):
-                    data_definitions.append(DataDefinition(raw_data_def))
-                else:
-                    raise TypeError("The bundle structure in list only support "
-                                    "dict and str, but got {}.".format(structure))
-        elif isinstance(structure, dict):
-            if 'key' in structure:
-                data_definitions.append(DataDefinition(structure['key'], structure['args']))
-            else:
-                for _, val in six.viewitems(structure):
-                    _get_data_keys_from_structure(val)
+    for raw_data_def in structure:
+        if isinstance(raw_data_def, dict):
+            data_definitions.append(
+                DataDefinition(raw_data_def['key'], raw_data_def['args']))
+        elif isinstance(raw_data_def, basestring):
+            data_definitions.append(DataDefinition(raw_data_def))
         else:
-            raise TypeError("The bundle structure only support "
-                            "dict, list and str, but got {}.".format(structure))
-    _get_data_keys_from_structure(structure)
+            raise TypeError("The bundle structure in list only support "
+                            "dict and str, but got {}.".format(structure))
+    return data_definitions
 
+
+def get_data_definitions_from_dict_in_structure(structure):
+    if 'key' in structure:
+        data_definitions = [DataDefinition(structure['key'], structure['args'])]
+    else:
+        data_definitions = []
+        for _, val in six.viewitems(structure):
+            data_definitions.extend(get_data_definitions_from_structure(val))
+    return data_definitions
+
+
+def get_data_definitions_from_structure(structure):
+    if isinstance(structure, basestring):
+        data_definitions = [DataDefinition(structure)]
+    elif isinstance(structure, list):
+        data_definitions = get_data_definitions_from_list_in_structure(structure)
+    elif isinstance(structure, dict):
+        data_definitions = get_data_definitions_from_dict_in_structure(structure)
+    else:
+        raise TypeError("The bundle structure only support "
+                        "dict, list and str, but got {}.".format(structure))
     return data_definitions
 
 
