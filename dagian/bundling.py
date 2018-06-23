@@ -121,11 +121,16 @@ class DataBundlerMixin(object):
 
     def _bundle_dict_in_structure(
             self, structure, data_bundle_hdf_path, buffer_size, structure_config, dset_name):
-        for key, val in six.viewitems(structure):
-            self._bundle(
-                val, data_bundle_hdf_path, buffer_size,
-                structure_config=structure_config.get(key, {}),
-                dset_name=dset_name + "/" + key)
+        if 'key' in structure:
+            data_definition = DataDefinition(structure['key'], structure['args'])
+            self.get_handler(structure).bundle(
+                data_definition, data_bundle_hdf_path, dset_name)
+        else:
+            for key, val in six.viewitems(structure):
+                self._bundle(
+                    val, data_bundle_hdf_path, buffer_size,
+                    structure_config=structure_config.get(key, {}),
+                    dset_name=dset_name + "/" + key)
 
     def _bundle(
             self, structure, data_bundle_hdf_path, buffer_size, structure_config, dset_name=""):
