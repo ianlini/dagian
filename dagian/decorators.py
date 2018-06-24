@@ -3,13 +3,29 @@ import re
 
 from past.builtins import basestring
 
-from .data_definition import RequirementDefinition
+from .data_definition import RequirementDefinition, Argument
 
 
 DATA_KEY_PATTERN = re.compile(r'^[_a-zA-Z][_a-zA-Z0-9]*$')
 
 
-def require(data_key, data_name=None, **kwargs):
+def require(*args, **kwargs):
+    if len(args) == 1:
+        data_key = args[0]
+        data_name = None
+    elif len(args) == 2:
+        data_key, data_name = args
+    else:
+        raise ValueError("require() only accepts 1 or 2 arguments.")
+
+    if data_name is None:
+        if isinstance(data_key, Argument):
+            data_name = data_key.parameter
+        elif isinstance(data_key, basestring):
+            data_name = data_key
+        else:
+            raise ValueError("Data key can only be str or Argument.")
+
     def require_decorator(func):
         # pylint: disable=protected-access
         if not hasattr(func, '_dagian_requirements'):
