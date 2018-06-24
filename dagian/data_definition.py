@@ -15,7 +15,7 @@ class DataDefinition(frozendict):
         else:
             self._args = frozendict(args)
         self._name = name
-        super(DataDefinition, self).__init__(key=key, args=self._args, name=name)
+        super(DataDefinition, self).__init__(key=key, args=self._args)
 
     @property
     def key(self):
@@ -59,8 +59,7 @@ class DataDefinition(frozendict):
 
     def __lt__(self, other):
         if isinstance(other, DataDefinition):
-            return ((self._key, self._args, str(self._name))
-                    < (other.key, other.args, str(other.name)))
+            return (self._key, self._args) < (other.key, other.args)
         return NotImplemented
 
 
@@ -125,5 +124,5 @@ class RequirementDefinition(DataDefinition):
             else:
                 raise ValueError(
                     "The values in RequirementDefinition.args can only be Argument or str.")
-        data_definition = DataDefinition(new_key, new_args)
+        data_definition = DataDefinition(new_key, new_args, self._name)
         return data_definition

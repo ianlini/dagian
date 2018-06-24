@@ -106,7 +106,7 @@ class DataGraph(object):
                 # build DataDefinition -> template_key dict
                 pred_data_def_key_dict = {}
                 for req in node_attrs['requirements']:
-                    template_key = req.key
+                    template_key = req.key if req.name is None else req.name
                     if isinstance(template_key, Argument):
                         template_key = template_key.parameter
                     req_data_def = req.eval_data_definition(predecessor_def.args)
