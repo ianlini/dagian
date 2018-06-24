@@ -8,13 +8,14 @@ from frozendict import frozendict
 
 
 class DataDefinition(frozendict):
-    def __init__(self, key, args=None):
+    def __init__(self, key, args=None, name=None):
         self._key = key
         if args is None:
             self._args = frozendict()
         else:
             self._args = frozendict(args)
-        super(DataDefinition, self).__init__(key=key, args=self._args)
+        self._name = name
+        super(DataDefinition, self).__init__(key=key, args=self._args, name=name)
 
     @property
     def key(self):
@@ -24,12 +25,18 @@ class DataDefinition(frozendict):
     def args(self):
         return self._args
 
-    def replace(self, key=None, args=None):
+    @property
+    def name(self):
+        return self._name
+
+    def replace(self, key=None, args=None, name=None):
         if key is None:
             key = self._key
         if args is None:
             args = self._args
-        return DataDefinition(key=key, args=args)
+        if name is None:
+            name = self._name
+        return DataDefinition(key=key, args=args, name=name)
 
     def __str__(self):
         class_name = type(self).__name__
@@ -52,7 +59,8 @@ class DataDefinition(frozendict):
 
     def __lt__(self, other):
         if isinstance(other, DataDefinition):
-            return (self.key, self.args) < (other.key, other.args)
+            return ((self._key, self._args, str(self._name))
+                    < (other.key, other.args, str(other.name)))
         return NotImplemented
 
 
@@ -100,16 +108,16 @@ class Argument(object):
 class RequirementDefinition(DataDefinition):
     def eval_data_definition(self, args):
         # evaluate key
-        if isinstance(self.key, Argument):
-            new_key = self.key.eval(args)
-        elif isinstance(self.key, basestring):
-            new_key = self.key.format(**args)
+        if isinstance(self._key, Argument):
+            new_key = self._key.eval(args)
+        elif isinstance(self._key, basestring):
+            new_key = self._key.format(**args)
         else:
             raise ValueError("RequirementDefinition.key can only be Argument or str.")
 
         # evaluate arguments
         new_args = {}
-        for key, arg in six.viewitems(self.args._dict):
+        for key, arg in six.viewitems(self._args._dict):
             if isinstance(arg, Argument):
                 new_args[key] = arg.eval(args)
             elif isinstance(arg, basestring):

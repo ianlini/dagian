@@ -91,12 +91,12 @@ id,lifetime,tested_age,weight,height,gender,income
         division_result = upstream_data['{dividend}'].value / upstream_data['{divisor}'].value
         return {'division': division_result}
 
-    @require('division', dividend=A('dividend'), divisor=A('divisor1'))
-    @require('{divisor2}')
+    @require('division', 'partial_division', dividend=A('dividend'), divisor=A('divisor1'))
+    @require('{divisor2}', 'divisor2')
     @will_generate('h5py', 'division_2_divisor')
     @params('dividend', 'divisor1', 'divisor2')
     def gen_division_2_divisor(self, upstream_data, args):
-        division_result = upstream_data['division'].value / upstream_data['{divisor2}'].value
+        division_result = upstream_data['partial_division'].value / upstream_data['divisor2'].value
         return {'division_2_divisor': division_result}
 
     @require('division', dividend=A('dividend', lambda x: 'pd_' + x), divisor=A('divisor1'))

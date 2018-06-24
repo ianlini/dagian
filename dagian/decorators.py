@@ -9,12 +9,12 @@ from .data_definition import RequirementDefinition
 DATA_KEY_PATTERN = re.compile(r'^[_a-zA-Z][_a-zA-Z0-9]*$')
 
 
-def require(data_key, **kwargs):
+def require(data_key, data_name=None, **kwargs):
     def require_decorator(func):
         # pylint: disable=protected-access
         if not hasattr(func, '_dagian_requirements'):
             func._dagian_requirements = []
-        func._dagian_requirements.append(RequirementDefinition(data_key, kwargs))
+        func._dagian_requirements.append(RequirementDefinition(data_key, kwargs, data_name))
         return func
     return require_decorator
 
