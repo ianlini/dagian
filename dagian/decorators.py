@@ -16,7 +16,7 @@ def require(*args, **kwargs):
     elif len(args) == 2:
         data_key, data_name = args
     else:
-        raise ValueError("require() only accepts 1 or 2 arguments.")
+        raise ValueError("require() only accepts 1 or 2 positional arguments.")
 
     if data_name is None:
         if isinstance(data_key, Argument):
