@@ -128,17 +128,12 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
     def _get_upstream_data(self, dag, data_definitions):
         data = {}
         for source_node, edge_attrs in dag.pred[data_definitions].items():
-            source_attrs = dag.nodes[source_node]
-            key_def_dict = {pred_def.key: pred_def
-                            for pred_def, _ in six.viewitems(edge_attrs['template_key_dict'])}
-            for key, config in six.viewitems(source_attrs['output_configs']):
-                if key not in key_def_dict:
-                    continue
-                pred_def = key_def_dict[key]
-                source_handler = self._handlers[config['handler']]
-                template_key = edge_attrs['template_key_dict'][pred_def]
-                formatted_key_data = source_handler.get(pred_def)
-                data[template_key] = formatted_key_data
+            source_output_configs = dag.nodes[source_node]['output_configs']
+            for pred_def in edge_attrs['data_definitions']:
+                source_handler_str = source_output_configs[pred_def.key]['handler']
+                source_handler = self._handlers[source_handler_str]
+                source_data = source_handler.get(pred_def)
+                data[pred_def.name] = source_data
         return data
 
     def _generate_one(self, dag, data_definitions, func_name, output_configs):

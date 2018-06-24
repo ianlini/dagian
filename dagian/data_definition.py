@@ -9,6 +9,7 @@ from frozendict import frozendict
 
 class DataDefinition(frozendict):
     def __init__(self, key, args=None, name=None):
+        assert name is None or isinstance(name, basestring), "Data name can only be str."
         self._key = key
         if args is None:
             self._args = frozendict()
@@ -124,5 +125,15 @@ class RequirementDefinition(DataDefinition):
             else:
                 raise ValueError(
                     "The values in RequirementDefinition.args can only be Argument or str.")
-        data_definition = DataDefinition(new_key, new_args, self._name)
+
+        # evaluate data name
+        if self._name is not None:
+            data_name = self._name
+        else:
+            if isinstance(self._key, Argument):
+                data_name = self._key.parameter
+            elif isinstance(self._key, basestring):
+                data_name = self._key
+
+        data_definition = DataDefinition(new_key, new_args, data_name)
         return data_definition
