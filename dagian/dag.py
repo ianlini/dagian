@@ -12,7 +12,7 @@ def draw_dag(nx_dag, path):
     agraph = nx.nx_agraph.to_agraph(nx_dag)
     for edge in agraph.edges_iter():
         if edge.attr['nonskipped_data'] is None:
-            edge.attr['label'] = edge.attr['keys']
+            edge.attr['label'] = edge.attr['data_definitions']
         else:
             edge.attr['label'] = ""
             if edge.attr['nonskipped_data'] not in ["set()", "set([])"]:
