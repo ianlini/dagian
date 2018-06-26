@@ -13,21 +13,19 @@ from ..bundling import get_data_definitions_from_structure
 
 def draw_dag(argv=sys.argv[1:]):
     parser = argparse.ArgumentParser(
-        description="Generate DAG.")
+        description="Generate DAG.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-g', '--global-config',
                         default=".dagianrc/config.yml",
-                        help="the path of the path configuration YAML file "
-                             "(default: .dagianrc/config.yml)")
+                        help="the path of the path configuration YAML file")
     parser.add_argument('-b', '--bundle-config',
                         default=".dagianrc/bundle_config.yml",
-                        help="the path of the bundle configuration YAML file "
-                             "(default: .dagianrc/bundle_config.yml)")
+                        help="the path of the bundle configuration YAML file")
     parser.add_argument('-d', '--dag-output-path',
-                        default="dag.png",
-                        help="output image path (default: dag.png)")
+                        default="dag.svg",
+                        help="output image path")
     parser.add_argument('-i', '--involved', action='store_true',
-                        help="annotate the involved nodes and skipped nodes "
-                             "(default: False)")
+                        help="annotate the involved nodes and skipped nodes")
     args = parser.parse_args(argv)
     with open(args.global_config) as fp:
         global_config = yaml.safe_load(fp)
