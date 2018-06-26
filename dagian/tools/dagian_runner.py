@@ -46,18 +46,16 @@ def dagian_run_with_configs(global_config, bundle_config, dag_output_path=None,
 def dagian_run(argv=sys.argv[1:]):
 
     parser = argparse.ArgumentParser(
-        description="Generate global data and data bundle.")
+        description="Generate data cache and bundle.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-g', '--global-config',
                         default=".dagianrc/config.yml",
-                        help="the path of the path configuration YAML file "
-                             "(default: .dagianrc/config.yml)")
+                        help="the path of the path configuration YAML file")
     parser.add_argument('-b', '--bundle-config',
                         default=".dagianrc/bundle_config.yml",
-                        help="the path of the bundle configuration YAML file "
-                             "(default: .dagianrc/bundle_config.yml)")
+                        help="the path of the bundle configuration YAML file")
     parser.add_argument('-d', '--dag-output-path', default=None,
-                        help="draw the involved subDAG to the provided path "
-                             "(default: None)")
+                        help="draw the involved subDAG to the provided path")
     parser.add_argument('--no-bundle', action='store_true',
                         help="not generate the data bundle")
     args = parser.parse_args(argv)
