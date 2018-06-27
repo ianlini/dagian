@@ -17,8 +17,12 @@ class LifetimeFeatureGenerator(fg.FeatureGenerator):
         self.data_csv_path = data_csv_path
 
     @will_generate('memory', 'data_df')
-    def gen_data_df(self):
-        return {'data_df': pd.read_csv(self.data_csv_path, index_col='id')}
+    def gen_data_df(self, args=None):
+        if args is None:
+            args = {}
+        nrows = args.get('nrows', None)
+        data_df = pd.read_csv(self.data_csv_path, index_col='id', nrows=nrows)
+        return {'data_df': data_df}
 
     @require('data_df')
     @will_generate('h5py', 'label')
@@ -55,3 +59,11 @@ class LifetimeFeatureGenerator(fg.FeatureGenerator):
             data_df.index, test_size=0.5, random_state=0)
         is_in_test_set = data_df.index.isin(test_id)
         return {'is_in_test_set': is_in_test_set}
+
+    @require('data_df', 'data_df_nrow3', nrows=3)
+    @require('data_df', 'data_df_nrow5', nrows=5)
+    @will_generate('h5py', 'test_same_key_data')
+    def gen_partial_data(self, upstream_data):
+        weight_3 = upstream_data['data_df_nrow3']['weight']
+        weight_5 = upstream_data['data_df_nrow5']['weight']
+        return {'test_same_key_data': pd.concat([weight_3, weight_5]).values}

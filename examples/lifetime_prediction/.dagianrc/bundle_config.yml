@@ -20,6 +20,9 @@ structure:
       args:
         dividend: weight
         divisor: height
+  unittest:
+    - test_same_key_data
+
 
 # Special configuration for the structure. Here we set concat=True for
 # 'features'. It means that the data list in 'features' will be concatenated

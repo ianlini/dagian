@@ -39,7 +39,7 @@ class LifetimeFeaturesGeneratorTest(unittest.TestCase):
                 h5py.File(data_bundle_hdf_path, "r") as data_bundle_h5f:
             assert (set(global_data_h5f)
                     == set(data_definition.json() for data_definition in data_definitions))
-            assert set(data_bundle_h5f) == {'features', 'test_filters', 'label'}
+            assert set(data_bundle_h5f) == {'features', 'test_filters', 'label', 'unittest'}
             assert set(data_bundle_h5f['test_filters']) == {'is_in_test_set'}
             self.assertTupleEqual(data_bundle_h5f['features'].shape, (6, 4))
 
