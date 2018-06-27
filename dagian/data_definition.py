@@ -124,11 +124,8 @@ class RequirementDefinition(DataDefinition):
                 new_args[key] = arg.eval(args)
             elif isinstance(arg, basestring):
                 new_args[key] = arg.format(**args)
-            elif isinstance(arg, int):
-                new_args[key] = arg
             else:
-                raise ValueError(
-                    "The values in RequirementDefinition.args can only be Argument or str.")
+                new_args[key] = arg
 
         data_definition = DataDefinition(new_key, new_args, self._name)
         return data_definition

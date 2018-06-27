@@ -1,6 +1,7 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
 
 import pandas as pd
+import numpy as np
 from sklearn.model_selection import train_test_split
 import dagian as fg
 from dagian.decorators import (
@@ -8,7 +9,6 @@ from dagian.decorators import (
     require,
     params,
 )
-
 
 class LifetimeFeatureGenerator(fg.FeatureGenerator):
     def __init__(self, h5py_hdf_path, data_csv_path):
@@ -53,17 +53,20 @@ class LifetimeFeatureGenerator(fg.FeatureGenerator):
 
     @require('data_df')
     @will_generate('h5py', 'is_in_test_set')
-    def gen_is_in_test_set(self, upstream_data):
+    @params('random_state')
+    def gen_is_in_test_set(self, upstream_data, args):
+        random_state = args['random_state']
         data_df = upstream_data['data_df']
         _, test_id = train_test_split(
-            data_df.index, test_size=0.5, random_state=0)
+            data_df.index, test_size=0.5, random_state=random_state)
         is_in_test_set = data_df.index.isin(test_id)
         return {'is_in_test_set': is_in_test_set}
 
-    @require('data_df', 'data_df_nrow3', nrows=3)
-    @require('data_df', 'data_df_nrow5', nrows=5)
-    @will_generate('h5py', 'test_same_key_data')
-    def gen_partial_data(self, upstream_data):
-        weight_3 = upstream_data['data_df_nrow3']['weight']
-        weight_5 = upstream_data['data_df_nrow5']['weight']
-        return {'test_same_key_data': pd.concat([weight_3, weight_5]).values}
+    @require('is_in_test_set', 'is_in_test_set_1126', random_state=1126)
+    @require('is_in_test_set', 'is_in_test_set_5566', random_state=5566)
+    @will_generate('h5py', 'test_set_masks')
+    def gen_test_masks_from_seed(self, upstream_data):
+        test_mask_1126 = upstream_data['is_in_test_set_1126']
+        test_mask_5566 = upstream_data['is_in_test_set_5566']
+        test_set_masks = np.stack([test_mask_1126.value, test_mask_5566.value], axis=1)
+        return {'test_set_masks': test_set_masks}
