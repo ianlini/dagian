@@ -62,7 +62,7 @@ class DataDefinition(frozendict):
 
     def __lt__(self, other):
         if isinstance(other, DataDefinition):
-            return (self._key, self._args) < (other.key, other.args)
+            return str(self) < str(other)
         return NotImplemented
 
 
