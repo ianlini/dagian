@@ -1,5 +1,5 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
-from collections import OrderedDict
+from collections import OrderedDict, Hashable
 import json
 
 import six
@@ -124,8 +124,11 @@ class RequirementDefinition(DataDefinition):
                 new_args[key] = arg.eval(args)
             elif isinstance(arg, basestring):
                 new_args[key] = arg.format(**args)
-            else:
+            elif isinstance(arg, Hashable):
                 new_args[key] = arg
+            else:
+                raise ValueError(
+                    "The values RequirementDefinition.args can only be Argument or hashable.")
 
         data_definition = DataDefinition(new_key, new_args, self._name)
         return data_definition
