@@ -17,11 +17,8 @@ class LifetimeFeatureGenerator(fg.FeatureGenerator):
         self.data_csv_path = data_csv_path
 
     @will_generate('memory', 'data_df')
-    def gen_data_df(self, args=None):
-        if args is None:
-            args = {}
-        nrows = args.get('nrows', None)
-        data_df = pd.read_csv(self.data_csv_path, index_col='id', nrows=nrows)
+    def gen_data_df(self):
+        data_df = pd.read_csv(self.data_csv_path, index_col='id')
         return {'data_df': data_df}
 
     @require('data_df')

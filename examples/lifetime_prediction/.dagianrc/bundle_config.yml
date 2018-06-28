@@ -25,7 +25,6 @@ structure:
         divisor: height
 
 
-
 # Special configuration for the structure. Here we set concat=True for
 # 'features'. It means that the data list in 'features' will be concatenated
 # into a dataset.

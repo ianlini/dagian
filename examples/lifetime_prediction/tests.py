@@ -37,8 +37,15 @@ class LifetimeFeaturesGeneratorTest(unittest.TestCase):
         data_definitions = get_data_definitions_from_structure(bundle_config['structure'])
         with h5py.File(h5py_hdf_path, "r") as global_data_h5f, \
                 h5py.File(data_bundle_hdf_path, "r") as data_bundle_h5f:
-            assert (set(global_data_h5f)
-                    > set(data_definition.json() for data_definition in data_definitions))
+            data_definitions_json_set = set(
+                data_definition.json() for data_definition in data_definitions)
+
+            # additional two data_definitions from test_masks
+            additional_data_definition = {
+                '{"key": "is_in_test_set", "args": {"random_state": 1126}}',
+                '{"key": "is_in_test_set", "args": {"random_state": 5566}}'
+            }
+            assert (set(global_data_h5f) == data_definitions_json_set | additional_data_definition)
             assert set(data_bundle_h5f) == {'features', 'test_filters', 'label'}
             assert set(data_bundle_h5f['test_filters']) == {'is_in_test_set', 'test_set_masks'}
             self.assertTupleEqual(data_bundle_h5f['features'].shape, (6, 4))
