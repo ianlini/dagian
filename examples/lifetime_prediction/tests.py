@@ -42,7 +42,7 @@ class LifetimeFeaturesGeneratorTest(unittest.TestCase):
                 data_definition.json() for data_definition in data_definitions)
 
             # additional two data_definitions from test_masks
-            cache_data_def_json_set.union([
+            cache_data_def_json_set.update([
                 DataDefinition("is_in_test_set", {"random_state": 1126}).json(),
                 DataDefinition("is_in_test_set", {"random_state": 5566}).json(),
             ])
