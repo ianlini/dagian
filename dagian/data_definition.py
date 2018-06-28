@@ -128,7 +128,7 @@ class RequirementDefinition(DataDefinition):
                 new_args[key] = arg
             else:
                 raise ValueError(
-                    "The values RequirementDefinition.args can only be Argument or hashable.")
+                    "The values in RequirementDefinition.args can only be Argument or hashable.")
 
         data_definition = DataDefinition(new_key, new_args, self._name)
         return data_definition
