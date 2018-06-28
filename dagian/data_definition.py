@@ -1,5 +1,5 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
-from collections import OrderedDict
+from collections import OrderedDict, Hashable
 import json
 
 import six
@@ -62,7 +62,7 @@ class DataDefinition(frozendict):
 
     def __lt__(self, other):
         if isinstance(other, DataDefinition):
-            return (self._key, self._args) < (other.key, other.args)
+            return str(self) < str(other)
         return NotImplemented
 
 
@@ -124,9 +124,11 @@ class RequirementDefinition(DataDefinition):
                 new_args[key] = arg.eval(args)
             elif isinstance(arg, basestring):
                 new_args[key] = arg.format(**args)
+            elif isinstance(arg, Hashable):
+                new_args[key] = arg
             else:
                 raise ValueError(
-                    "The values in RequirementDefinition.args can only be Argument or str.")
+                    "The values in RequirementDefinition.args can only be Argument or hashable.")
 
         data_definition = DataDefinition(new_key, new_args, self._name)
         return data_definition

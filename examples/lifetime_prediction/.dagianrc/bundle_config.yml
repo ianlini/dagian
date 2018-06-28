@@ -11,7 +11,10 @@ structure:
   label:
     label
   test_filters:
-    - is_in_test_set
+    - key: is_in_test_set
+      args:
+        random_state: 0
+    - test_set_masks
   features:
     - weight
     - height
