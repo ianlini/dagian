@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import os
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 on_rtd = os.environ.get('READTHEDOCS') == 'True'
@@ -71,9 +71,5 @@ setup(
         'License :: OSI Approved :: MIT License',
     ],
     test_suite='nose.collector',
-    packages=[
-        'dagian',
-        'dagian.tools',
-        'dagian.data_wrappers',
-    ],
+    packages=find_packages(),
 )
