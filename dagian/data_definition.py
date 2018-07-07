@@ -1,7 +1,5 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
 import collections
-from collections import OrderedDict
-import json
 
 import six
 from past.builtins import basestring

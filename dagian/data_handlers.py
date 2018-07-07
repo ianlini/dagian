@@ -14,6 +14,7 @@ import scipy.sparse as ss
 import six
 from six.moves import cPickle
 from tables import NaturalNameWarning
+from pathlib2 import Path
 
 from .data_wrappers import PandasHDFDataset
 from .data_definition import DataDefinition
@@ -286,29 +287,29 @@ class MemoryDataHandler(DataHandler):
 class PickleDataHandler(DataHandler):
 
     def __init__(self, pickle_dir):
-        mkdir_p(pickle_dir)
-        self.pickle_dir = pickle_dir
+        self.pickle_dir = Path(pickle_dir)
+        self.pickle_dir.mkdir(parents=True, exist_ok=True)
 
     def can_skip(self, data_definition):
-        data_path = os.path.join(self.pickle_dir, data_definition.to_json() + ".pkl")
-        if os.path.exists(data_path):
+        data_path = self.pickle_dir / (data_definition.to_json() + ".pkl")
+        if data_path.exists():
             return True
         return False
 
     def get(self, data_definition):
         if isinstance(data_definition, DataDefinition):
-            with open(os.path.join(self.pickle_dir, data_definition.to_json() + ".pkl"), "rb") as fp:
+            with (self.pickle_dir / (data_definition.to_json() + ".pkl")).open('rb') as fp:
                 return cPickle.load(fp)
         data = {}
         for data_def in data_definition:
-            with open(os.path.join(self.pickle_dir, data_def.to_json() + ".pkl"), "rb") as fp:
+            with (self.pickle_dir / (data_def.to_json() + ".pkl")).open('rb') as fp:
                 data[data_def] = cPickle.load(fp)
         return data
 
     def write_data(self, result_dict):
         for data_definition, val in six.viewitems(result_dict):
-            pickle_path = os.path.join(self.pickle_dir, data_definition.to_json() + ".pkl")
+            pickle_path = self.pickle_dir / (data_definition.to_json() + ".pkl")
             with SimpleTimer("Writing generated data %s to pickle file" % data_definition,
                              end_in_new_line=False), \
-                    open(pickle_path, "wb") as fp:
+                    pickle_path.open('wb') as fp:
                 cPickle.dump(val, fp, protocol=cPickle.HIGHEST_PROTOCOL)

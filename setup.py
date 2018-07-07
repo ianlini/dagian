@@ -27,6 +27,7 @@ else:
         'tables',
         'pandas',
         'h5sparse>=0.0.5',
+        'pathlib2',
     ]
     tests_require = []
 
