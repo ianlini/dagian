@@ -97,13 +97,13 @@ class H5pyDataHandler(DataHandler):
                 return True
         return False
 
-    def get_h5py_file_object(self):
+    def get_read_only_h5py_file(self):
         if self.h5f is None:
             self.h5f = h5py.File(self.hdf_path, 'r')
         return self.h5f
 
     def get(self, data_definition):
-        h5f = self.get_h5py_file_object()
+        h5f = self.get_read_only_h5py_file()
         if isinstance(data_definition, DataDefinition):
             return h5sparse.Group(h5f)[data_definition.json()]
         return {k: h5sparse.Group(h5f)[k.json()] for k in data_definition}
@@ -172,17 +172,26 @@ class PandasHDFDataHandler(DataHandler):
         hdf_dir = os.path.dirname(hdf_path)
         if hdf_dir != '':
             mkdir_p(hdf_dir)
-        self.hdf_store = pd.HDFStore(hdf_path)
+        pd.HDFStore(hdf_path, 'a').close()
+        self.hdf_path = hdf_path
+        self.hdf_store = None
 
     def can_skip(self, data_definition):
-        if data_definition.json() in self.hdf_store:
-            return True
+        with pd.HDFStore(self.hdf_path, 'r') as hdf_store:
+            if data_definition.json() in hdf_store:
+                return True
         return False
 
+    def get_read_only_hdf_store(self):
+        if self.hdf_store is None:
+            self.hdf_store = pd.HDFStore(self.hdf_path, 'r')
+        return self.hdf_store
+
     def get(self, data_definition):
+        hdf_store = self.get_read_only_hdf_store()
         if isinstance(data_definition, DataDefinition):
-            return PandasHDFDataset(self.hdf_store, data_definition.json())
-        return {k: PandasHDFDataset(self.hdf_store, k.json()) for k in data_definition}
+            return PandasHDFDataset(hdf_store, data_definition.json())
+        return {k: PandasHDFDataset(hdf_store, k.json()) for k in data_definition}
 
     def get_function_kwargs(self, will_generate_keys, data,
                             manually_append=False):
@@ -211,33 +220,33 @@ class PandasHDFDataHandler(DataHandler):
                                    function_name, handler_key)
 
     def write_data(self, result_dict):
-        for data_definition, result in six.viewitems(result_dict):
-            # check nan
-            is_null = False
-            if isinstance(result, pd.DataFrame):
-                if result.isnull().any().any():
-                    is_null = True
-            elif isinstance(result, pd.Series):
-                if result.isnull().any():
-                    is_null = True
-            else:
-                raise ValueError("PandasHDFDataHandler doesn't support type "
-                                 "{} (in key {})".format(type(result), data_definition))
-            if is_null:
-                raise ValueError("data {} have nan".format(data_definition))
-
-            # write data
-            with SimpleTimer("Writing generated data {} to hdf5 file".format(data_definition),
-                             end_in_new_line=False), \
-                    warnings.catch_warnings():
-                warnings.simplefilter('ignore', NaturalNameWarning)
-                if (isinstance(result, pd.DataFrame)
-                        and isinstance(result.index, pd.MultiIndex)
-                        and isinstance(result.columns, pd.MultiIndex)):
-                    self.hdf_store.put(data_definition.json(), result)
+        with pd.HDFStore(self.hdf_path, 'a') as hdf_store:
+            for data_definition, result in six.viewitems(result_dict):
+                # check nan
+                is_null = False
+                if isinstance(result, pd.DataFrame):
+                    if result.isnull().any().any():
+                        is_null = True
+                elif isinstance(result, pd.Series):
+                    if result.isnull().any():
+                        is_null = True
                 else:
-                    self.hdf_store.put(data_definition.json(), result, format='table')
-        self.hdf_store.flush(fsync=True)
+                    raise ValueError("PandasHDFDataHandler doesn't support type "
+                                     "{} (in key {})".format(type(result), data_definition))
+                if is_null:
+                    raise ValueError("data {} have nan".format(data_definition))
+
+                # write data
+                with SimpleTimer("Writing generated data {} to hdf5 file".format(data_definition),
+                                 end_in_new_line=False), \
+                        warnings.catch_warnings():
+                    warnings.simplefilter('ignore', NaturalNameWarning)
+                    if (isinstance(result, pd.DataFrame)
+                            and isinstance(result.index, pd.MultiIndex)
+                            and isinstance(result.columns, pd.MultiIndex)):
+                        hdf_store.put(data_definition.json(), result)
+                    else:
+                        hdf_store.put(data_definition.json(), result, format='table')
 
     def bundle(self, data_definition, path, new_key):
         """Copy the data to another HDF5 file with new key."""
