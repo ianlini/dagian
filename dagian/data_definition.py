@@ -5,10 +5,10 @@ import json
 
 import six
 from past.builtins import basestring
-from .utils.frozen_dict import FrozenDict, SortedFrozenDict
+from .utils.frozen_dict import OrderedFrozenDict, SortedFrozenDict
 
 
-class DataDefinition(FrozenDict):
+class DataDefinition(OrderedFrozenDict):
     def __init__(self, key, args=None, name=None):
         assert isinstance(key, (basestring, Argument, tuple)), \
             "Data key can only be str or Argument."
@@ -19,7 +19,7 @@ class DataDefinition(FrozenDict):
         else:
             self._args = SortedFrozenDict.recursively_froze(args)
         self._name = name
-        super(DataDefinition, self).__init__(key=key, args=self._args)
+        super(DataDefinition, self).__init__((('key', key), ('args', self._args)))
 
     @property
     def key(self):
