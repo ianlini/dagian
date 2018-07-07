@@ -2,6 +2,7 @@ from __future__ import print_function, division, absolute_import, unicode_litera
 import collections
 from collections import OrderedDict
 import copy
+import json
 
 import six
 
@@ -56,6 +57,14 @@ class FrozenDict(collections.Mapping):
         new_dict = copy.deepcopy(self._dict)
         new_dict.update(*args, **kwargs)
         return type(self)(new_dict)
+
+    def to_json(self):
+        return json.dumps(self._dict)
+
+    def __lt__(self, other):
+        if isinstance(other, FrozenDict):
+            return str(self) < str(other)
+        return NotImplemented
 
 
 class SortedFrozenDict(FrozenDict):

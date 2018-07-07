@@ -1,6 +1,7 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
 import unittest
 from collections import OrderedDict
+import json
 
 import six
 
@@ -63,6 +64,9 @@ class FrozenDictTest(unittest.TestCase):
         self.assertDictEqual(dict(self.original_dict), dict(self.frozen_dict))
         self.assertEqual(123, new_frozen_dict['123'])
         self.assertEqual(2, new_frozen_dict['a'])
+
+    def test_to_json(self):
+        self.assertEqual(json.dumps(self.original_dict), self.frozen_dict.to_json())
 
 
 class SortedFrozenDictTest(FrozenDictTest):
