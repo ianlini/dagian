@@ -5,7 +5,7 @@ import json
 
 import six
 
-from dagian.utils.frozen_dict import FrozenDict, SortedFrozenDict
+from dagian.utils.frozen_dict import FrozenDict, SortedFrozenDict, OrderedFrozenDict
 
 
 class FrozenDictTest(unittest.TestCase):
@@ -75,6 +75,15 @@ class FrozenDictTest(unittest.TestCase):
         self.assertTrue(self.frozen_dict <= self.frozen_dict)
         self.assertFalse(self.frozen_dict > self.frozen_dict)
         self.assertTrue(self.frozen_dict >= self.frozen_dict)
+
+
+class OrderedFrozenDictTest(FrozenDictTest):
+    def setUp(self):
+        self.original_dict = OrderedDict((('123', '456'), ('789', '000')))
+        self.frozen_dict = OrderedFrozenDict(self.original_dict)
+
+    def test_repr(self):
+        self.assertEqual('OrderedFrozenDict(%s)' % self.original_dict, repr(self.frozen_dict))
 
 
 class SortedFrozenDictTest(FrozenDictTest):

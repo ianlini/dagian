@@ -10,7 +10,6 @@ import six
 class FrozenDict(collections.Mapping):
     def __init__(self, *args, **kwargs):
         self._dict = dict(*args, **kwargs)
-        self._hash = None
 
     def __getitem__(self, key):
         return self._dict[key]
@@ -32,12 +31,13 @@ class FrozenDict(collections.Mapping):
         return str(self._dict)
 
     def __hash__(self):
-        if self._hash is None:
-            h = 0
-            for key_value in six.viewitems(self._dict):
-                h ^= hash(key_value)
-            self._hash = h
-        return self._hash
+        if hasattr(self, '_hash'):
+            return self._hash
+        h = 0
+        for key_value in six.viewitems(self._dict):
+            h ^= hash(key_value)
+        self._hash = h
+        return h
 
     def keys(self):
         return six.viewkeys(self._dict)
@@ -101,14 +101,18 @@ class FrozenDict(collections.Mapping):
                                 for key, val in six.viewitems(mapping))
 
 
-class SortedFrozenDict(FrozenDict):
+class OrderedFrozenDict(FrozenDict):
     def __init__(self, *args, **kwargs):
-        unsorted_dict = dict(*args, **kwargs)
-        self._dict = OrderedDict((k, unsorted_dict[k])
-                                 for k in sorted(six.viewkeys(unsorted_dict)))
-        self._hash = None
+        self._dict = OrderedDict(*args, **kwargs)
 
     def __str__(self):
         s = ', '.join('%r: %r' % (k, v) for k, v in six.viewitems(self._dict))
         s = '{%s}' % s
         return s
+
+
+class SortedFrozenDict(OrderedFrozenDict):
+    def __init__(self, *args, **kwargs):
+        unsorted_dict = dict(*args, **kwargs)
+        self._dict = OrderedDict((k, unsorted_dict[k])
+                                 for k in sorted(six.viewkeys(unsorted_dict)))
