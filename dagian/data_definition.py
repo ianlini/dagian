@@ -1,24 +1,23 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
-from collections import OrderedDict, Hashable
-import json
+import collections
 
 import six
 from past.builtins import basestring
-from frozendict import frozendict
+from .utils.frozen_dict import OrderedFrozenDict, SortedFrozenDict
 
 
-class DataDefinition(frozendict):
+class DataDefinition(OrderedFrozenDict):
     def __init__(self, key, args=None, name=None):
         assert isinstance(key, (basestring, Argument, tuple)), \
             "Data key can only be str or Argument."
         assert name is None or isinstance(name, basestring), "Data name can only be str."
         self._key = key
         if args is None:
-            self._args = frozendict()
+            self._args = SortedFrozenDict()
         else:
-            self._args = frozendict(args)
+            self._args = SortedFrozenDict.recursively_froze(args)
         self._name = name
-        super(DataDefinition, self).__init__(key=key, args=self._args)
+        super(DataDefinition, self).__init__((('key', key), ('args', self._args)))
 
     @property
     def key(self):
@@ -44,26 +43,11 @@ class DataDefinition(frozendict):
     def __str__(self):
         class_name = type(self).__name__
         if len(self._args) == 0:
-            return "{}({})".format(class_name, repr(self._key))
-        arg_strs = ["%s: %s" % (repr(key), repr(self._args[key]))
-                    for key in sorted(six.viewkeys(self._args._dict))]
-        args_str = "{%s}" % ", ".join(arg_strs)
-        return "{}({}, {})".format(class_name, repr(self._key), args_str)
+            return "%s(%r)" % (class_name, self._key)
+        return "%s(%r, %s)" % (class_name, self._key, self._args)
 
     def __repr__(self):
         return str(self)
-
-    def json(self):
-        ordered_args = ((key, self._args[key]) for key in sorted(six.viewkeys(self._args._dict)))
-        ordered_data_def = OrderedDict((('key', self._key),
-                                        ('args', OrderedDict(ordered_args))))
-        json_str = json.dumps(ordered_data_def)
-        return json_str
-
-    def __lt__(self, other):
-        if isinstance(other, DataDefinition):
-            return str(self) < str(other)
-        return NotImplemented
 
 
 class Argument(object):
@@ -87,7 +71,8 @@ class Argument(object):
         return self.callable(args[self.parameter])
 
     def __str__(self):
-        return "Argument(%s)" % repr(self.parameter)
+        class_name = type(self).__name__
+        return "%s(%r)" % (class_name, self.parameter)
 
     def __repr__(self):
         return str(self)
@@ -111,20 +96,26 @@ class RequirementDefinition(DataDefinition):
     def eval_data_definition(self, args):
         # evaluate key
         if isinstance(self._key, Argument):
-            new_key = self._key.eval(args)
+            raw_data_def = self._key.eval(args)
+            if isinstance(raw_data_def, collections.Mapping):
+                new_key = raw_data_def['key']
+                new_args = raw_data_def['args']
+            else:
+                new_key = raw_data_def
+                new_args = {}
         elif isinstance(self._key, basestring):
             new_key = self._key.format(**args)
+            new_args = {}
         else:
             raise ValueError("RequirementDefinition.key can only be Argument or str.")
 
         # evaluate arguments
-        new_args = {}
         for key, arg in six.viewitems(self._args._dict):
             if isinstance(arg, Argument):
                 new_args[key] = arg.eval(args)
             elif isinstance(arg, basestring):
                 new_args[key] = arg.format(**args)
-            elif isinstance(arg, Hashable):
+            elif isinstance(arg, collections.Hashable):
                 new_args[key] = arg
             else:
                 raise ValueError(
