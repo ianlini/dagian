@@ -56,3 +56,11 @@ class FrozenDict(collections.Mapping):
         new_dict = copy.deepcopy(self._dict)
         new_dict.update(*args, **kwargs)
         return type(self)(new_dict)
+
+
+class SortedFrozenDict(FrozenDict):
+    def __init__(self, *args, **kwargs):
+        unsorted_dict = dict(*args, **kwargs)
+        self._dict = OrderedDict((k, unsorted_dict[k])
+                                 for k in sorted(six.viewkeys(unsorted_dict)))
+        self._hash = None

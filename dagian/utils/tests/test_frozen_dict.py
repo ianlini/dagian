@@ -4,7 +4,7 @@ from collections import OrderedDict
 
 import six
 
-from dagian.utils.frozen_dict import FrozenDict
+from dagian.utils.frozen_dict import FrozenDict, SortedFrozenDict
 
 
 class FrozenDictTest(unittest.TestCase):
@@ -63,3 +63,13 @@ class FrozenDictTest(unittest.TestCase):
         self.assertDictEqual(dict(self.original_dict), dict(self.frozen_dict))
         self.assertEqual(123, new_frozen_dict['123'])
         self.assertEqual(2, new_frozen_dict['a'])
+
+
+class SortedFrozenDictTest(FrozenDictTest):
+    def setUp(self):
+        self.original_dict = OrderedDict((('123', '456'), ('789', '000')))
+        unsorted_dict = OrderedDict((('789', '000'), ('123', '456')))
+        self.frozen_dict = SortedFrozenDict(unsorted_dict)
+
+    def test_repr(self):
+        self.assertEqual('SortedFrozenDict(%s)' % self.original_dict, repr(self.frozen_dict))
