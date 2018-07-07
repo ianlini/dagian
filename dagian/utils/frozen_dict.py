@@ -7,6 +7,13 @@ import json
 import six
 
 
+class FrozenDictJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, FrozenDict):
+            return obj._dict
+        return super(FrozenDictJSONEncoder, self).default(obj)
+
+
 class FrozenDict(collections.Mapping):
     def __init__(self, *args, **kwargs):
         self._dict = dict(*args, **kwargs)
@@ -59,7 +66,7 @@ class FrozenDict(collections.Mapping):
         return type(self)(new_dict)
 
     def to_json(self):
-        return json.dumps(self._dict)
+        return json.dumps(self, cls=FrozenDictJSONEncoder)
 
     def __lt__(self, other):
         if isinstance(other, FrozenDict):
