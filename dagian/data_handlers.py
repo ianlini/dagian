@@ -75,6 +75,10 @@ class DataHandler(six.with_metaclass(ABCMeta, object)):
         data = self.get(data_definition)
         with h5sparse.File(path) as h5f:
             h5f.create_dataset(new_key, data=data)
+        self.close()
+
+    def close(self):
+        pass
 
 
 class H5pyDataHandler(DataHandler):
@@ -83,17 +87,26 @@ class H5pyDataHandler(DataHandler):
         hdf_dir = os.path.dirname(hdf_path)
         if hdf_dir != '':
             mkdir_p(hdf_dir)
-        self.h5f = h5py.File(hdf_path, 'a')
+        h5py.File(hdf_path, 'a').close()
+        self.hdf_path = hdf_path
+        self.h5f = None
 
     def can_skip(self, data_definition):
-        if data_definition.json() in self.h5f:
-            return True
+        with h5py.File(self.hdf_path, 'r') as h5f:
+            if data_definition.json() in h5f:
+                return True
         return False
 
+    def get_h5py_file_object(self):
+        if self.h5f is None:
+            self.h5f = h5py.File(self.hdf_path, 'r')
+        return self.h5f
+
     def get(self, data_definition):
+        h5f = self.get_h5py_file_object()
         if isinstance(data_definition, DataDefinition):
-            return h5sparse.Group(self.h5f)[data_definition.json()]
-        return {k: h5sparse.Group(self.h5f)[k.json()] for k in data_definition}
+            return h5sparse.Group(h5f)[data_definition.json()]
+        return {k: h5sparse.Group(h5f)[k.json()] for k in data_definition}
 
     def get_function_kwargs(self, will_generate_keys, data,
                             manually_create_dataset=False):
@@ -127,23 +140,30 @@ class H5pyDataHandler(DataHandler):
                                    function_name, handler_key)
 
     def write_data(self, result_dict):
-        for data_definition, result in six.viewitems(result_dict):
-            # check nan
-            if ss.isspmatrix(result):
-                if np.isnan(result.data).any():
+        with h5py.File(self.hdf_path, 'a') as h5f:
+            for data_definition, result in six.viewitems(result_dict):
+                # check nan
+                if ss.isspmatrix(result):
+                    if np.isnan(result.data).any():
+                        raise ValueError("data {} have nan".format(data_definition))
+                elif np.isnan(result).any():
                     raise ValueError("data {} have nan".format(data_definition))
-            elif np.isnan(result).any():
-                raise ValueError("data {} have nan".format(data_definition))
 
-            # write data
-            with SimpleTimer("Writing generated data {} to hdf5 file".format(data_definition),
-                             end_in_new_line=False):
-                if data_definition.json() in self.h5f:
-                    # self.h5f[key][...] = result
-                    raise NotImplementedError("Overwriting not supported. Please report an issue.")
-                else:
-                    h5sparse.Group(self.h5f).create_dataset(data_definition.json(), data=result)
-        self.h5f.flush()
+                # write data
+                with SimpleTimer("Writing generated data {} to hdf5 file".format(data_definition),
+                                 end_in_new_line=False):
+                    if data_definition.json() in h5f:
+                        # h5f[key][...] = result
+                        raise NotImplementedError(
+                            "Overwriting not supported. Please report an issue.")
+                    else:
+                        h5sparse.Group(h5f).create_dataset(data_definition.json(), data=result)
+            h5f.flush()
+
+    def close(self):
+        if self.h5f is not None:
+            self.h5f.close()
+            self.h5f = None
 
 
 class PandasHDFDataHandler(DataHandler):
@@ -223,6 +243,7 @@ class PandasHDFDataHandler(DataHandler):
         """Copy the data to another HDF5 file with new key."""
         data = self.get(data_definition).value
         data.to_hdf(path, new_key)
+        self.close()
 
 
 class MemoryDataHandler(DataHandler):

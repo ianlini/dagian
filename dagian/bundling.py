@@ -156,3 +156,4 @@ class DataBundlerMixin(object):
             os.remove(data_bundle_hdf_path)
         with SimpleTimer("Bundling data"):
             self._bundle(structure, data_bundle_hdf_path, buffer_size, structure_config)
+        self.close()

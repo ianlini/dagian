@@ -155,6 +155,7 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
         # )
         function = getattr(self, func_name)
         result_dict = _run_function(function, data_definitions, function_kwargs)
+        self.close()
 
         if result_dict is None:
             result_dict = {}
@@ -193,6 +194,10 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
                 node_attrs['output_configs'])
 
         return involved_dag
+
+    def close(self):
+        for handler in six.viewvalues(self._handlers):
+            handler.close()
 
     @classmethod
     def draw_dag(cls, path, data_definitions):
