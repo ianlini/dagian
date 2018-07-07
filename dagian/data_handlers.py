@@ -150,7 +150,8 @@ class H5pyDataHandler(DataHandler):
                     raise ValueError("data {} have nan".format(data_definition))
 
                 # write data
-                with SimpleTimer("Writing generated data {} to hdf5 file".format(data_definition),
+                with SimpleTimer("[{}] Writing generated data {} to hdf5 file"
+                                 .format(type(self).__name__, data_definition),
                                  end_in_new_line=False):
                     if data_definition.json() in h5f:
                         # h5f[key][...] = result
@@ -237,7 +238,8 @@ class PandasHDFDataHandler(DataHandler):
                     raise ValueError("data {} have nan".format(data_definition))
 
                 # write data
-                with SimpleTimer("Writing generated data {} to hdf5 file".format(data_definition),
+                with SimpleTimer("[{}] Writing generated data {} to hdf5 file"
+                                 .format(type(self).__name__, data_definition),
                                  end_in_new_line=False), \
                         warnings.catch_warnings():
                     warnings.simplefilter('ignore', NaturalNameWarning)
@@ -253,6 +255,11 @@ class PandasHDFDataHandler(DataHandler):
         data = self.get(data_definition).value
         data.to_hdf(path, new_key)
         self.close()
+
+    def close(self):
+        if self.hdf_store is not None:
+            self.hdf_store.close()
+            self.hdf_store = None
 
 
 class MemoryDataHandler(DataHandler):
