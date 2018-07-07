@@ -10,6 +10,7 @@ from dagian.decorators import (
     params,
 )
 
+
 class LifetimeFeatureGenerator(fg.FeatureGenerator):
     def __init__(self, h5py_hdf_path, data_csv_path):
         super(LifetimeFeatureGenerator, self).__init__(
