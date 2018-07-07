@@ -68,6 +68,14 @@ class FrozenDictTest(unittest.TestCase):
     def test_to_json(self):
         self.assertEqual(json.dumps(self.original_dict), self.frozen_dict.to_json())
 
+    def test_operators(self):
+        self.assertTrue(self.frozen_dict == self.frozen_dict)
+        self.assertFalse(self.frozen_dict != self.frozen_dict)
+        self.assertFalse(self.frozen_dict < self.frozen_dict)
+        self.assertTrue(self.frozen_dict <= self.frozen_dict)
+        self.assertFalse(self.frozen_dict > self.frozen_dict)
+        self.assertTrue(self.frozen_dict >= self.frozen_dict)
+
 
 class SortedFrozenDictTest(FrozenDictTest):
     def setUp(self):

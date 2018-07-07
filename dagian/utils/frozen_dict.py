@@ -66,6 +66,21 @@ class FrozenDict(collections.Mapping):
             return str(self) < str(other)
         return NotImplemented
 
+    def __le__(self, other):
+        if isinstance(other, FrozenDict):
+            return str(self) <= str(other)
+        return NotImplemented
+
+    def __gt__(self, other):
+        if isinstance(other, FrozenDict):
+            return str(self) > str(other)
+        return NotImplemented
+
+    def __ge__(self, other):
+        if isinstance(other, FrozenDict):
+            return str(self) >= str(other)
+        return NotImplemented
+
 
 class SortedFrozenDict(FrozenDict):
     def __init__(self, *args, **kwargs):
