@@ -10,7 +10,6 @@ pyyaml
 tables
 pandas
 h5sparse>=0.0.5
-frozendict>=1.2
 
 # for testing
 tox

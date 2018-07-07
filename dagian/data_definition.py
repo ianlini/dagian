@@ -4,19 +4,19 @@ import json
 
 import six
 from past.builtins import basestring
-from frozendict import frozendict
+from .utils.frozen_dict import FrozenDict
 
 
-class DataDefinition(frozendict):
+class DataDefinition(FrozenDict):
     def __init__(self, key, args=None, name=None):
         assert isinstance(key, (basestring, Argument, tuple)), \
             "Data key can only be str or Argument."
         assert name is None or isinstance(name, basestring), "Data name can only be str."
         self._key = key
         if args is None:
-            self._args = frozendict()
+            self._args = FrozenDict()
         else:
-            self._args = frozendict(args)
+            self._args = FrozenDict(args)
         self._name = name
         super(DataDefinition, self).__init__(key=key, args=self._args)
 
