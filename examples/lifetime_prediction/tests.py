@@ -39,12 +39,12 @@ class LifetimeFeaturesGeneratorTest(unittest.TestCase):
         with h5py.File(h5py_hdf_path, "r") as cache_data_h5f, \
                 h5py.File(data_bundle_hdf_path, "r") as data_bundle_h5f:
             cache_data_def_json_set = set(
-                data_definition.json() for data_definition in data_definitions)
+                data_definition.to_json() for data_definition in data_definitions)
 
             # additional two data_definitions from test_masks
             cache_data_def_json_set.update([
-                DataDefinition("is_in_test_set", {"random_state": 1126}).json(),
-                DataDefinition("is_in_test_set", {"random_state": 5566}).json(),
+                DataDefinition("is_in_test_set", {"random_state": 1126}).to_json(),
+                DataDefinition("is_in_test_set", {"random_state": 5566}).to_json(),
             ])
             assert (set(cache_data_h5f) == cache_data_def_json_set)
             assert set(data_bundle_h5f) == {'features', 'test_filters', 'label'}

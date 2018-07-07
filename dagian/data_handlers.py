@@ -94,7 +94,7 @@ class H5pyDataHandler(DataHandler):
 
     def can_skip(self, data_definition):
         with h5py.File(self.hdf_path, 'r') as h5f:
-            if data_definition.json() in h5f:
+            if data_definition.to_json() in h5f:
                 return True
         return False
 
@@ -106,8 +106,8 @@ class H5pyDataHandler(DataHandler):
     def get(self, data_definition):
         h5f = self.get_read_only_h5py_file()
         if isinstance(data_definition, DataDefinition):
-            return h5sparse.Group(h5f)[data_definition.json()]
-        return {k: h5sparse.Group(h5f)[k.json()] for k in data_definition}
+            return h5sparse.Group(h5f)[data_definition.to_json()]
+        return {k: h5sparse.Group(h5f)[k.to_json()] for k in data_definition}
 
     def get_function_kwargs(self, will_generate_keys, data,
                             manually_create_dataset=False):
@@ -154,12 +154,12 @@ class H5pyDataHandler(DataHandler):
                 with SimpleTimer("[{}] Writing generated data {} to hdf5 file"
                                  .format(type(self).__name__, data_definition),
                                  end_in_new_line=False):
-                    if data_definition.json() in h5f:
+                    if data_definition.to_json() in h5f:
                         # h5f[key][...] = result
                         raise NotImplementedError(
                             "Overwriting not supported. Please report an issue.")
                     else:
-                        h5sparse.Group(h5f).create_dataset(data_definition.json(), data=result)
+                        h5sparse.Group(h5f).create_dataset(data_definition.to_json(), data=result)
             h5f.flush()
 
     def close(self):
@@ -181,7 +181,7 @@ class PandasHDFDataHandler(DataHandler):
 
     def can_skip(self, data_definition):
         with pd.HDFStore(self.hdf_path, 'r') as hdf_store:
-            if data_definition.json() in hdf_store:
+            if data_definition.to_json() in hdf_store:
                 return True
         return False
 
@@ -193,8 +193,8 @@ class PandasHDFDataHandler(DataHandler):
     def get(self, data_definition):
         hdf_store = self.get_read_only_hdf_store()
         if isinstance(data_definition, DataDefinition):
-            return PandasHDFDataset(hdf_store, data_definition.json())
-        return {k: PandasHDFDataset(hdf_store, k.json()) for k in data_definition}
+            return PandasHDFDataset(hdf_store, data_definition.to_json())
+        return {k: PandasHDFDataset(hdf_store, k.to_json()) for k in data_definition}
 
     def get_function_kwargs(self, will_generate_keys, data,
                             manually_append=False):
@@ -248,9 +248,9 @@ class PandasHDFDataHandler(DataHandler):
                     if (isinstance(result, pd.DataFrame)
                             and isinstance(result.index, pd.MultiIndex)
                             and isinstance(result.columns, pd.MultiIndex)):
-                        hdf_store.put(data_definition.json(), result)
+                        hdf_store.put(data_definition.to_json(), result)
                     else:
-                        hdf_store.put(data_definition.json(), result, format='table')
+                        hdf_store.put(data_definition.to_json(), result, format='table')
 
     def bundle(self, data_definition, path, new_key):
         """Copy the data to another HDF5 file with new key."""
@@ -290,24 +290,24 @@ class PickleDataHandler(DataHandler):
         self.pickle_dir = pickle_dir
 
     def can_skip(self, data_definition):
-        data_path = os.path.join(self.pickle_dir, data_definition.json() + ".pkl")
+        data_path = os.path.join(self.pickle_dir, data_definition.to_json() + ".pkl")
         if os.path.exists(data_path):
             return True
         return False
 
     def get(self, data_definition):
         if isinstance(data_definition, DataDefinition):
-            with open(os.path.join(self.pickle_dir, data_definition.json() + ".pkl"), "rb") as fp:
+            with open(os.path.join(self.pickle_dir, data_definition.to_json() + ".pkl"), "rb") as fp:
                 return cPickle.load(fp)
         data = {}
         for data_def in data_definition:
-            with open(os.path.join(self.pickle_dir, data_def.json() + ".pkl"), "rb") as fp:
+            with open(os.path.join(self.pickle_dir, data_def.to_json() + ".pkl"), "rb") as fp:
                 data[data_def] = cPickle.load(fp)
         return data
 
     def write_data(self, result_dict):
         for data_definition, val in six.viewitems(result_dict):
-            pickle_path = os.path.join(self.pickle_dir, data_definition.json() + ".pkl")
+            pickle_path = os.path.join(self.pickle_dir, data_definition.to_json() + ".pkl")
             with SimpleTimer("Writing generated data %s to pickle file" % data_definition,
                              end_in_new_line=False), \
                     open(pickle_path, "wb") as fp:
