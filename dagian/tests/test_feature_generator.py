@@ -63,6 +63,11 @@ def test_generate_lifetime_features():
                  'args': {'dividend': 'weight',
                           'divisor1': 'height',
                           'divisor2': 'height'}},
+                {'key': 'recursive_division',
+                 'args': {'dividend': {'key': 'recursive_division',
+                                       'args': {'dividend': 'weight',
+                                                'divisor': 'height'}},
+                          'divisor': 'height'}},
             ],
         },
         'structure_config': {
@@ -81,6 +86,6 @@ def test_generate_lifetime_features():
         assert set(data_bundle_h5f['test_dict']) == {'comparison'}
         assert (set(data_bundle_h5f['test_dict/comparison'])
                 == set(bundle_config['structure']['test_dict']['comparison']))
-        assert data_bundle_h5f['features'].shape == (6, 12)
+        assert data_bundle_h5f['features'].shape == (6, 13)
 
     rmtree(test_output_dir)

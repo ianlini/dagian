@@ -71,7 +71,8 @@ class Argument(object):
         return self.callable(args[self.parameter])
 
     def __str__(self):
-        return "Argument(%s)" % repr(self.parameter)
+        class_name = type(self).__name__
+        return "%s(%r)" % (class_name, self.parameter)
 
     def __repr__(self):
         return str(self)
@@ -95,14 +96,20 @@ class RequirementDefinition(DataDefinition):
     def eval_data_definition(self, args):
         # evaluate key
         if isinstance(self._key, Argument):
-            new_key = self._key.eval(args)
+            raw_data_def = self._key.eval(args)
+            if isinstance(raw_data_def, collections.Mapping):
+                new_key = raw_data_def['key']
+                new_args = raw_data_def['args']
+            else:
+                new_key = raw_data_def
+                new_args = {}
         elif isinstance(self._key, basestring):
             new_key = self._key.format(**args)
+            new_args = {}
         else:
             raise ValueError("RequirementDefinition.key can only be Argument or str.")
 
         # evaluate arguments
-        new_args = {}
         for key, arg in six.viewitems(self._args._dict):
             if isinstance(arg, Argument):
                 new_args[key] = arg.eval(args)
