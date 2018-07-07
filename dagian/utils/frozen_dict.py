@@ -1,11 +1,12 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
 import collections
+from collections import OrderedDict
 import copy
 
 import six
 
 
-class FronzenDict(collections.Mapping):
+class FrozenDict(collections.Mapping):
     def __init__(self, *args, **kwargs):
         self._dict = dict(*args, **kwargs)
         self._hash = None

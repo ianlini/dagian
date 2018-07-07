@@ -1,15 +1,16 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
 import unittest
+from collections import OrderedDict
 
 import six
 
-from dagian.utils.frozen_dict import FronzenDict
+from dagian.utils.frozen_dict import FrozenDict
 
 
 class FrozenDictTest(unittest.TestCase):
     def setUp(self):
         self.original_dict = {'123': '456', '789': '000'}
-        self.frozen_dict = FronzenDict(self.original_dict)
+        self.frozen_dict = FrozenDict(self.original_dict)
 
     def test_getitem(self):
         for key, val in six.viewitems(self.original_dict):
@@ -29,9 +30,11 @@ class FrozenDictTest(unittest.TestCase):
     def test_len(self):
         self.assertEqual(len(self.original_dict), len(self.frozen_dict))
 
-    def test_str_and_repr(self):
-        str(self.frozen_dict)
-        repr(self.frozen_dict)
+    def test_str(self):
+        self.assertEqual(str(self.original_dict), str(self.frozen_dict))
+
+    def test_repr(self):
+        self.assertEqual('FrozenDict(%s)' % self.original_dict, repr(self.frozen_dict))
 
     def test_hash(self):
         self.assertIsInstance(hash(self.frozen_dict), int)
