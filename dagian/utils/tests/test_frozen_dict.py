@@ -32,7 +32,7 @@ class FrozenDictTest(unittest.TestCase):
         self.assertEqual(len(self.original_dict), len(self.frozen_dict))
 
     def test_str(self):
-        self.assertEqual(str(self.original_dict), str(self.frozen_dict))
+        str(self.frozen_dict)
 
     def test_repr(self):
         self.assertEqual('FrozenDict(%s)' % self.original_dict, repr(self.frozen_dict))

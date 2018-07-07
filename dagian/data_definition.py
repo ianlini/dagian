@@ -45,11 +45,8 @@ class DataDefinition(FrozenDict):
     def __str__(self):
         class_name = type(self).__name__
         if len(self._args) == 0:
-            return "{}({})".format(class_name, repr(self._key))
-        arg_strs = ["%s: %s" % (repr(key), repr(self._args[key]))
-                    for key in sorted(six.viewkeys(self._args._dict))]
-        args_str = "{%s}" % ", ".join(arg_strs)
-        return "{}({}, {})".format(class_name, repr(self._key), args_str)
+            return "%s(%r)" % (class_name, self._key)
+        return "%s(%r, %s)" % (class_name, self._key, self._args)
 
     def __repr__(self):
         return str(self)
@@ -60,11 +57,6 @@ class DataDefinition(FrozenDict):
                                         ('args', OrderedDict(ordered_args))))
         json_str = json.dumps(ordered_data_def)
         return json_str
-
-    def __lt__(self, other):
-        if isinstance(other, DataDefinition):
-            return str(self) < str(other)
-        return NotImplemented
 
 
 class Argument(object):

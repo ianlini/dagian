@@ -107,3 +107,8 @@ class SortedFrozenDict(FrozenDict):
         self._dict = OrderedDict((k, unsorted_dict[k])
                                  for k in sorted(six.viewkeys(unsorted_dict)))
         self._hash = None
+
+    def __str__(self):
+        s = ', '.join('%r: %r' % (k, v) for k, v in six.viewitems(self._dict))
+        s = '{%s}' % s
+        return s
