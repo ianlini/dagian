@@ -87,6 +87,7 @@ class H5pyDataHandler(DataHandler):
         hdf_dir = os.path.dirname(hdf_path)
         if hdf_dir != '':
             mkdir_p(hdf_dir)
+        # create an empty file if the file doesn't exists
         h5py.File(hdf_path, 'a').close()
         self.hdf_path = hdf_path
         self.h5f = None
@@ -173,6 +174,7 @@ class PandasHDFDataHandler(DataHandler):
         hdf_dir = os.path.dirname(hdf_path)
         if hdf_dir != '':
             mkdir_p(hdf_dir)
+        # create an empty file if the file doesn't exists
         pd.HDFStore(hdf_path, 'a').close()
         self.hdf_path = hdf_path
         self.hdf_store = None
