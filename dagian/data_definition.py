@@ -1,10 +1,11 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
-from collections import OrderedDict, Hashable
+import collections
+from collections import OrderedDict
 import json
 
 import six
 from past.builtins import basestring
-from .utils.frozen_dict import FrozenDict
+from .utils.frozen_dict import FrozenDict, SortedFrozenDict
 
 
 class DataDefinition(FrozenDict):
@@ -14,9 +15,9 @@ class DataDefinition(FrozenDict):
         assert name is None or isinstance(name, basestring), "Data name can only be str."
         self._key = key
         if args is None:
-            self._args = FrozenDict()
+            self._args = SortedFrozenDict()
         else:
-            self._args = FrozenDict(args)
+            self._args = SortedFrozenDict.recursively_froze(args)
         self._name = name
         super(DataDefinition, self).__init__(key=key, args=self._args)
 
@@ -124,7 +125,7 @@ class RequirementDefinition(DataDefinition):
                 new_args[key] = arg.eval(args)
             elif isinstance(arg, basestring):
                 new_args[key] = arg.format(**args)
-            elif isinstance(arg, Hashable):
+            elif isinstance(arg, collections.Hashable):
                 new_args[key] = arg
             else:
                 raise ValueError(

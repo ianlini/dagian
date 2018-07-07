@@ -81,6 +81,25 @@ class FrozenDict(collections.Mapping):
             return str(self) >= str(other)
         return NotImplemented
 
+    @classmethod
+    def recursively_froze(cls, value):
+        if (isinstance(value, collections.Mapping)
+                and not isinstance(value, collections.Hashable)):
+            value = cls._recursively_froze_mapping(value)
+        elif (isinstance(value, collections.Sequence)
+                and not isinstance(value, collections.Hashable)):
+            value = cls._recursively_froze_sequence(value)
+        return value
+
+    @classmethod
+    def _recursively_froze_sequence(cls, sequence):
+        return tuple(cls.recursively_froze(val) for val in sequence)
+
+    @classmethod
+    def _recursively_froze_mapping(cls, mapping):
+        return SortedFrozenDict((key, cls.recursively_froze(val))
+                                for key, val in six.viewitems(mapping))
+
 
 class SortedFrozenDict(FrozenDict):
     def __init__(self, *args, **kwargs):
