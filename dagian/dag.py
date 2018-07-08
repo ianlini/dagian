@@ -98,12 +98,13 @@ class DataGraph(object):
             if node_data_defs not in nx_digraph:
                 # ancestors of this node has not been grown
                 # TODO: check the argument
-                requirement_defs = [req.eval_data_definition(predecessor_def.args)
-                                    for req in node_attrs['requirements']]
+                requirement_defs = [data_def
+                                    for req in node_attrs['requirements']
+                                    for data_def in req.eval_data_definition(predecessor_def.args)]
                 data_name_set = {req_def.name for req_def in requirement_defs}
 
                 # check duplicated data name
-                if len(requirement_defs) != len(data_name_set):
+                if len(node_attrs['requirements']) != len(data_name_set):
                     raise ValueError("Duplicated data names exist: {}".format(requirement_defs))
                 nx_digraph.add_node(node_data_defs, **node_attrs)
                 self._grow_ancestors(nx_digraph, node_data_defs, requirement_defs)

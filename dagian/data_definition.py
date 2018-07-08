@@ -95,18 +95,28 @@ class Argument(object):
 
 class RequirementDefinition(DataDefinition):
     def eval_data_definition(self, args):
+        # TODO: refactor
         # evaluate key
         if isinstance(self._key, Argument):
             raw_data_def = self._key.eval(args)
             if isinstance(raw_data_def, collections.Mapping):
                 new_keys = [raw_data_def['key']]
-                new_args = [raw_data_def['args']]
-            if isinstance(raw_data_def, collections.Sequence):
-                new_keys = [dd['key'] for dd in raw_data_def]
-                new_args = [dd['args'] for dd in raw_data_def]
+                new_args = [raw_data_def.get('args', {})]
             elif isinstance(raw_data_def, basestring):
                 new_keys = [raw_data_def]
                 new_args = [{}]
+            elif isinstance(raw_data_def, collections.Sequence):
+                new_keys = []
+                new_args = []
+                for _raw_data_def in raw_data_def:
+                    if isinstance(_raw_data_def, basestring):
+                        new_key = _raw_data_def
+                        new_arg = {}
+                    else:
+                        new_key = _raw_data_def['key']
+                        new_arg = _raw_data_def.get('args', {})
+                    new_keys.append(new_key)
+                    new_args.append(new_arg)
             else:
                 raise ValueError("Evaluated arguments only support dict, list or str.")
         elif isinstance(self._key, basestring):
