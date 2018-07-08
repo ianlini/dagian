@@ -110,11 +110,11 @@ class DataGraph(object):
 
             if not nx_digraph.has_edge(node_data_defs, root_node_key):
                 # initialize edge
-                nx_digraph.add_edge(node_data_defs, root_node_key, data_definitions=set())
+                nx_digraph.add_edge(node_data_defs, root_node_key, data_definitions=[])
 
             # set edge attributes
             edge_attr = nx_digraph.edges[node_data_defs, root_node_key]
-            edge_attr['data_definitions'].add(predecessor_def)
+            edge_attr['data_definitions'].append(predecessor_def)
 
     def build_directed_graph(self, data_definitions, root_node_key='root'):
         """

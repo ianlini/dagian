@@ -2,6 +2,7 @@ from __future__ import print_function, division, absolute_import, unicode_litera
 import collections
 
 import six
+from six.moves import zip
 from past.builtins import basestring
 from .utils.frozen_dict import OrderedFrozenDict, SortedFrozenDict
 
@@ -98,28 +99,34 @@ class RequirementDefinition(DataDefinition):
         if isinstance(self._key, Argument):
             raw_data_def = self._key.eval(args)
             if isinstance(raw_data_def, collections.Mapping):
-                new_key = raw_data_def['key']
-                new_args = raw_data_def['args']
+                new_keys = [raw_data_def['key']]
+                new_args = [raw_data_def['args']]
+            if isinstance(raw_data_def, collections.Sequence):
+                new_keys = [dd['key'] for dd in raw_data_def]
+                new_args = [dd['args'] for dd in raw_data_def]
+            elif isinstance(raw_data_def, basestring):
+                new_keys = [raw_data_def]
+                new_args = [{}]
             else:
-                new_key = raw_data_def
-                new_args = {}
+                raise ValueError("Evaluated arguments only support dict, list or str.")
         elif isinstance(self._key, basestring):
-            new_key = self._key.format(**args)
-            new_args = {}
+            new_keys = [self._key.format(**args)]
+            new_args = [{}]
         else:
             raise ValueError("RequirementDefinition.key can only be Argument or str.")
 
         # evaluate arguments
         for key, arg in six.viewitems(self._args._dict):
             if isinstance(arg, Argument):
-                new_args[key] = arg.eval(args)
+                arg = arg.eval(args)
             elif isinstance(arg, basestring):
-                new_args[key] = arg.format(**args)
-            elif isinstance(arg, collections.Hashable):
-                new_args[key] = arg
-            else:
+                arg = arg.format(**args)
+            elif not isinstance(arg, collections.Hashable):
                 raise ValueError(
                     "The values in RequirementDefinition.args can only be Argument or hashable.")
+            for new_arg in new_args:
+                new_arg[key] = arg
 
-        data_definition = DataDefinition(new_key, new_args, self._name)
-        return data_definition
+        data_definitions = [DataDefinition(key, arg, self._name)
+                            for key, arg in zip(new_keys, new_args)]
+        return data_definitions
