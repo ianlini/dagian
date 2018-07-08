@@ -115,6 +115,16 @@ id,lifetime,tested_age,weight,height,gender,income
         division_result = upstream_data['dividend'].value / upstream_data['divisor'].value
         return {'recursive_division': division_result}
 
+    @require(A('sequence'))
+    @will_generate('h5py', 'sequential_division')
+    @params('sequence')
+    def gen_sequential_division(self, upstream_data, args):
+        assert args['sequence']
+        division_result = upstream_data['sequence'][0].value
+        for data in upstream_data['sequence'][1:]:
+            division_result /= data.value
+        return {'sequential_division': division_result}
+
     @require('data_df')
     @will_generate('pickle', 'train_test_split')
     def gen_train_test_split(self, upstream_data):
