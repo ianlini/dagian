@@ -1,6 +1,6 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
 import inspect
-from collections import defaultdict
+from collections import defaultdict, Counter
 from copy import deepcopy
 
 import six
@@ -127,13 +127,20 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
 
     def _get_upstream_data(self, dag, data_definitions):
         data = {}
+        name_counter = Counter()
         for source_node, edge_attrs in dag.pred[data_definitions].items():
             source_output_configs = dag.nodes[source_node]['output_configs']
             for pred_def in edge_attrs['data_definitions']:
                 source_handler_str = source_output_configs[pred_def.key]['handler']
                 source_handler = self._handlers[source_handler_str]
                 source_data = source_handler.get(pred_def)
-                data[pred_def.name] = source_data
+                if name_counter[pred_def.name] == 0:
+                    data[pred_def.name] = source_data
+                elif name_counter[pred_def.name] == 1:
+                    data[pred_def.name] = [data[pred_def.name], source_data]
+                else:
+                    data[pred_def.name].append(source_data)
+                name_counter[pred_def.name] += 1
         return data
 
     def _generate_one(self, dag, data_definitions, func_name, output_configs):
