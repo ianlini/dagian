@@ -101,7 +101,7 @@ class RequirementDefinition(DataDefinition):
             raw_data_def = self._key.eval(args)
             if isinstance(raw_data_def, collections.Mapping):
                 new_keys = [raw_data_def['key']]
-                new_args = [raw_data_def.get('args', {})]
+                new_args = [dict(raw_data_def.get('args', {}))]
             elif isinstance(raw_data_def, basestring):
                 new_keys = [raw_data_def]
                 new_args = [{}]
@@ -114,7 +114,7 @@ class RequirementDefinition(DataDefinition):
                         new_arg = {}
                     else:
                         new_key = _raw_data_def['key']
-                        new_arg = _raw_data_def.get('args', {})
+                        new_arg = dict(_raw_data_def.get('args', {}))
                     new_keys.append(new_key)
                     new_args.append(new_arg)
             else:
