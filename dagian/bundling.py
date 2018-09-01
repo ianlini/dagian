@@ -152,6 +152,7 @@ class DataBundlerMixin(object):
         if structure_config is None:
             structure_config = {}
 
+        data_bundle_hdf_path = str(data_bundle_hdf_path)
         if os.path.isfile(data_bundle_hdf_path):
             os.remove(data_bundle_hdf_path)
         with SimpleTimer("Bundling data"):
