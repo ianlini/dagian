@@ -1,11 +1,10 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
-from os.path import basename, splitext, join
 import sys
 import argparse
 import collections
 
 import yaml
-from mkdir_p import mkdir_p
+from pathlib2 import Path
 
 from .config import get_data_generator_from_config
 from ..bundling import get_data_definitions_from_structure
@@ -35,9 +34,9 @@ def dagian_run_with_configs(global_config, bundle_config, dag_output_path=None,
     data_generator.generate(data_definitions, dag_output_path)
 
     if not no_bundle:
-        mkdir_p(global_config['data_bundles_dir'])
-        bundle_path = join(global_config['data_bundles_dir'],
-                           bundle_config['name'] + '.h5')
+        data_bundles_dir = Path(global_config['data_bundles_dir']).expanduser()
+        data_bundles_dir.mkdir(parents=True, exist_ok=True)
+        bundle_path = data_bundles_dir / (bundle_config['name'] + '.h5')
         data_generator.bundle(
             bundle_config['structure'], data_bundle_hdf_path=bundle_path,
             structure_config=bundle_config['structure_config'])
@@ -63,7 +62,5 @@ def dagian_run(argv=sys.argv[1:]):
         global_config = yaml.safe_load(fp)
     with open(args.bundle_config) as fp:
         bundle_config = yaml.safe_load(fp)
-    filename_without_extension = splitext(basename(args.bundle_config))[0]
-    bundle_config.setdefault('name', filename_without_extension)
-    dagian_run_with_configs(global_config, bundle_config, args.dag_output_path,
-                            args.no_bundle)
+    bundle_config.setdefault('name', Path(args.bundle_config).stem)
+    dagian_run_with_configs(global_config, bundle_config, args.dag_output_path, args.no_bundle)
