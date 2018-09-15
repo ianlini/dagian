@@ -46,6 +46,7 @@ class DataGeneratorType(type):
             sig = signature(function)
             parameters = []
             for name, p in sig.parameters.items():
+                # We only take p.kind in {POSITIONAL_OR_KEYWORD, KEYWORD_ONLY} with valid name.
                 if name in ('self', 'upstream_data'):
                     continue
                 elif p.kind in (p.POSITIONAL_ONLY, p.VAR_POSITIONAL):
