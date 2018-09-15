@@ -2,6 +2,10 @@ from __future__ import print_function, division, absolute_import, unicode_litera
 import inspect
 from collections import defaultdict, Counter
 from copy import deepcopy
+try:
+    from inspect import signature
+except ImportError:
+    from funcsigs import signature
 
 import six
 import networkx as nx
@@ -31,14 +35,24 @@ class DataGeneratorType(type):
         handler_set = set()
         for function_name, function in attrs:
             handler_set.update(config['handler'] for config in function._dagian_output_configs)
+
+            # requirements
             if hasattr(function, '_dagian_requirements'):
                 requirements = function._dagian_requirements
             else:
                 requirements = ()
-            if hasattr(function, '_dagian_parameters'):
-                parameters = function._dagian_parameters
-            else:
-                parameters = ()
+
+            # parameters
+            sig = signature(function)
+            parameters = []
+            for name, p in sig.parameters.items():
+                if name in ('self', 'upstream_data'):
+                    continue
+                elif p.kind in (p.POSITIONAL_ONLY, p.VAR_POSITIONAL):
+                    raise ValueError(
+                        "generator methods in dagian.DataGenerator only accept keyword arguments")
+                elif p.kind != p.VAR_KEYWORD:
+                    parameters.append(p)
 
             dag.add_node(
                 function_name,

@@ -46,8 +46,8 @@ class DataGraph(object):
     def add_node(self, name, parameters, requirements, output_configs):
         # pylint: disable=protected-access
         # format better data structure
-        parameters = tuple(sorted(set(parameters)))
-        requirements = tuple(sorted(set(requirements)))
+        parameters = tuple(parameters)
+        requirements = tuple(requirements)
         output_config_dict = {
             config['key']: {
                 'handler': config['handler'],
