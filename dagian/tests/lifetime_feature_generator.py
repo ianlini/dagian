@@ -6,7 +6,6 @@ from dagian import Argument as A
 from dagian.decorators import (
     require,
     will_generate,
-    params,
 )
 import numpy as np
 import pandas as pd
@@ -86,40 +85,35 @@ id,lifetime,tested_age,weight,height,gender,income
     @require('{dividend}')
     @require('{divisor}')
     @will_generate('h5py', 'division')
-    @params('dividend', 'divisor')
-    def gen_division(self, upstream_data, args):
+    def gen_division(self, upstream_data, dividend, divisor='weight'):
         division_result = upstream_data['{dividend}'].value / upstream_data['{divisor}'].value
         return {'division': division_result}
 
     @require('division', 'partial_division', dividend=A('dividend'), divisor=A('divisor1'))
     @require('{divisor2}', 'divisor2')
     @will_generate('h5py', 'division_2_divisor')
-    @params('dividend', 'divisor1', 'divisor2')
-    def gen_division_2_divisor(self, upstream_data, args):
+    def gen_division_2_divisor(self, upstream_data, dividend, divisor1, divisor2):
         division_result = upstream_data['partial_division'].value / upstream_data['divisor2'].value
         return {'division_2_divisor': division_result}
 
     @require('division', dividend=A('dividend', lambda x: 'pd_' + x), divisor=A('divisor1'))
     @require(A('divisor2'))
     @will_generate('h5py', 'division_pd_2_divisor')
-    @params('dividend', 'divisor1', 'divisor2')
-    def gen_division_pd_2_divisor(self, upstream_data, args):
+    def gen_division_pd_2_divisor(self, upstream_data, dividend, divisor1, divisor2):
         division_result = upstream_data['division'].value / upstream_data['divisor2'].value
         return {'division_pd_2_divisor': division_result}
 
     @require(A('dividend'))
     @require(A('divisor'))
     @will_generate('h5py', 'recursive_division')
-    @params('dividend', 'divisor')
-    def gen_recursive_division(self, upstream_data, args):
+    def gen_recursive_division(self, upstream_data, dividend, divisor):
         division_result = upstream_data['dividend'].value / upstream_data['divisor'].value
         return {'recursive_division': division_result}
 
     @require(A('sequence'))
     @will_generate('h5py', 'sequential_division')
-    @params('sequence')
-    def gen_sequential_division(self, upstream_data, args):
-        assert args['sequence']
+    def gen_sequential_division(self, upstream_data, sequence):
+        assert sequence
         division_result = upstream_data['sequence'][0].value
         for data in upstream_data['sequence'][1:]:
             division_result /= data.value

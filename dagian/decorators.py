@@ -60,13 +60,3 @@ def will_generate(data_handler, output_keys, **handler_kwargs):
             })
         return func
     return will_generate_decorator
-
-
-def params(*parameters):
-    def params_decorator(func):
-        # pylint: disable=protected-access
-        if not hasattr(func, '_dagian_parameters'):
-            func._dagian_parameters = []
-        func._dagian_parameters.extend(parameters)
-        return func
-    return params_decorator
