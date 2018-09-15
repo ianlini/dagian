@@ -165,7 +165,7 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
         else:
             function_kwargs = {}
         if data_definitions.args:
-            function_kwargs['args'] = deepcopy(data_definitions.args._dict)
+            function_kwargs.update(deepcopy(data_definitions.args._dict))
 
         # TODO: add handler-specific arguments
         # handler = self._handlers[handler_key]
