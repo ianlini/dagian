@@ -29,6 +29,7 @@ else:
         'h5sparse>=0.0.5',
         'pathlib2',
         'funcsigs',
+        'tqdm',
     ]
     tests_require = []
 

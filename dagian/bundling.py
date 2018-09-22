@@ -6,7 +6,8 @@ import numpy as np
 import pandas as pd
 import h5py
 import six
-from bistiming import IterTimer, SimpleTimer
+from bistiming import SimpleTimer
+from tqdm import trange
 
 from .data_definition import DataDefinition
 
@@ -84,19 +85,16 @@ class DataBundlerMixin(object):
                 print("Warning! buffer_size not enough to fitted by an "
                       "instance. Trying to use more memory.")
                 batch_size = 1
-            with IterTimer("({}/{}) Filling {}"
-                           .format(data_i + 1, len(data_definitions), data_definition),
-                           data_shape[0]) as timer:
-                for batch_start in range(0, data_shape[0], batch_size):
-                    timer.update(batch_start)
-                    batch_end = min(data_shape[0], batch_start + batch_size)
-                    data_buffer = data[batch_start: batch_end]
-                    if isinstance(data_buffer, pd.DataFrame):
-                        data_buffer.values
-                    if len(data_buffer.shape) == 1:
-                        data_buffer = data_buffer[:, np.newaxis]
-                    dset[batch_start: batch_end,
-                         data_d: data_d + data_shape[1]] = data_buffer
+            desc = "({}/{}) Filling {}".format(data_i + 1, len(data_definitions), data_definition)
+            for batch_start in trange(0, data_shape[0], batch_size, desc=desc):
+                batch_end = min(data_shape[0], batch_start + batch_size)
+                data_buffer = data[batch_start: batch_end]
+                if isinstance(data_buffer, pd.DataFrame):
+                    data_buffer.values
+                if len(data_buffer.shape) == 1:
+                    data_buffer = data_buffer[:, np.newaxis]
+                dset[batch_start: batch_end,
+                     data_d: data_d + data_shape[1]] = data_buffer
 
             data_d += data_shape[1]
 
