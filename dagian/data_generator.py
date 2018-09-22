@@ -98,7 +98,63 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
         handler = self._handlers[handler_name]
         return handler
 
+    @classmethod
+    def check_data_definition(cls, data_definition):
+        """Check whether a data definition is valid and set the defaut arguments.
+
+        Parameters
+        ----------
+        data_definition : DataDefinition
+
+        Returns
+        -------
+        valid_data_definition : DataDefinition
+            Data definition with default values filled.
+        """
+        key_node_attrs_dict = cls._dag._key_node_attrs_dict
+        if data_definition.key not in key_node_attrs_dict:
+            raise KeyError("Data key %s doesn't exist." % data_definition.key)
+        parameters = key_node_attrs_dict[data_definition.key]['parameters']
+
+        # check parameters
+        defined_params = set(data_definition.args.keys())
+        valid_params = set(param.name for param in parameters)
+        required_params = set(param.name for param in parameters
+                              if param.default is param.empty)
+        if not defined_params.issubset(valid_params):
+            unexpected_args = defined_params - valid_params
+            raise ValueError("Data definition %s has %d unexpected arguments %s."
+                             % (data_definition, len(unexpected_args), unexpected_args))
+        if not required_params.issubset(defined_params):
+            missing_args = required_params - defined_params
+            raise ValueError("Data definition %s misses %d required arguments %s."
+                             % (data_definition, len(missing_args), missing_args))
+
+        # fill default args
+        valid_args = {param.name: data_definition.args.get(param.name, param.default)
+                      for param in parameters}
+        valid_data_definition = data_definition.replace(args=valid_args)
+        return valid_data_definition
+
+    @classmethod
+    def check_data_definitions(cls, data_definitions):
+        """``check_data_definition()`` with ``Sequence`` input and output.
+
+        Parameters
+        ----------
+        data_definitions : Sequence[DataDefinition]
+
+        Returns
+        -------
+        valid_data_definitions : Sequence[DataDefinition]
+            Data definitions with default values filled.
+        """
+        valid_data_definitions = [cls.check_data_definition(data_def)
+                                  for data_def in data_definitions]
+        return valid_data_definitions
+
     def get(self, data_definition):
+        data_definition = self.check_data_definition(data_definition)
         handler = self.get_handler(data_definition.key)
         data = handler.get(data_definition)
         return data
@@ -130,6 +186,7 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
 
     def build_involved_dag(self, data_definitions):
         # get the nodes and edges that will be considered during the generation
+        data_definitions = self.check_data_definitions(data_definitions)
         involved_dag = self._dag.build_directed_graph(data_definitions, root_node_key='generate')
         generation_order = list(nx.topological_sort(involved_dag))[:-1]
         involved_dag.node['generate']['skipped'] = False
@@ -224,6 +281,7 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
     @classmethod
     def draw_dag(cls, path, data_definitions):
         # pylint: disable=protected-access
+        data_definitions = cls.check_data_definitions(data_definitions)
         dag = cls._dag.draw(path, data_definitions, root_node_key='generate')
         if not nx.is_directed_acyclic_graph(dag):
             print("Warning! The graph is not acyclic!")

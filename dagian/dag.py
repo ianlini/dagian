@@ -31,12 +31,7 @@ def draw_dag(nx_dag, path):
 
 
 class DataGraph(object):
-    """Directed graph that each node is represented by regular expression.
-
-    We can use a string to find a node that has regex matching the string. The
-    matching groups can also be the arguments to define the edge. Because the
-    predecessor is matched depending on regex, the graph will be dynamically built
-    given some entry points.
+    """Data that represents the dependency.
     """
 
     def __init__(self):
