@@ -85,7 +85,7 @@ id,lifetime,tested_age,weight,height,gender,income
     @require('{dividend}')
     @require('{divisor}')
     @will_generate('h5py', 'division')
-    def gen_division(self, upstream_data, dividend, divisor='weight'):
+    def gen_division(self, upstream_data, dividend, divisor='height'):
         division_result = upstream_data['{dividend}'].value / upstream_data['{divisor}'].value
         return {'division': division_result}
 
