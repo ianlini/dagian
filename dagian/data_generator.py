@@ -19,6 +19,7 @@ from .data_handlers import (
     PandasHDFDataHandler,
     PickleDataHandler,
 )
+from .data_definition import DataDefinition
 
 
 class DataGeneratorType(type):
@@ -98,7 +99,37 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
         handler = self._handlers[handler_name]
         return handler
 
+    @classmethod
+    def check_data_definitions(cls, data_definitions):
+        """Check whether the data definitions are valid.
+
+        Parameters
+        ----------
+        data_definitions : Union[DataDefinition, Sequence[DataDefinition]]
+        """
+        if isinstance(data_definitions, DataDefinition):
+            data_definitions = (data_definitions,)
+        key_node_attrs_dict = cls._dag._key_node_attrs_dict
+        for data_def in data_definitions:
+            if data_def.key not in key_node_attrs_dict:
+                raise KeyError("Data key %s doesn't exist." % data_def.key)
+            parameters = key_node_attrs_dict[data_def.key]['parameters']
+
+            # check parameters
+            defined_args = set(data_def.args.keys())
+            valid_args = set(param.name for param in parameters)
+            required_args = set(param.name for param in parameters if param.default is param.empty)
+            if not defined_args.issubset(valid_args):
+                unexpected_args = defined_args - valid_args
+                raise ValueError("Data definition %s has %d unexpected arguments %s."
+                                 % (data_def, len(unexpected_args), unexpected_args))
+            if not required_args.issubset(defined_args):
+                missing_args = required_args - defined_args
+                raise ValueError("Data definition %s misses %d required arguments %s."
+                                 % (data_def, len(missing_args), missing_args))
+
     def get(self, data_definition):
+        self.check_data_definitions(data_definition)
         handler = self.get_handler(data_definition.key)
         data = handler.get(data_definition)
         return data
@@ -130,6 +161,7 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
 
     def build_involved_dag(self, data_definitions):
         # get the nodes and edges that will be considered during the generation
+        self.check_data_definitions(data_definitions)
         involved_dag = self._dag.build_directed_graph(data_definitions, root_node_key='generate')
         generation_order = list(nx.topological_sort(involved_dag))[:-1]
         involved_dag.node['generate']['skipped'] = False
@@ -224,6 +256,7 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
     @classmethod
     def draw_dag(cls, path, data_definitions):
         # pylint: disable=protected-access
+        cls.check_data_definitions(data_definitions)
         dag = cls._dag.draw(path, data_definitions, root_node_key='generate')
         if not nx.is_directed_acyclic_graph(dag):
             print("Warning! The graph is not acyclic!")
