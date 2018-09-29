@@ -21,6 +21,32 @@ from .data_handlers import (
 )
 
 
+def check_result_dict_keys(result_dict, expected_key_set, function_name):
+    """Check whether the ``result_dict`` match the ``expected_key_set``.
+
+    Raises
+    ------
+    ValueError
+        Raise if the keys in ``result_dict`` doesn't match ``expected_key_set``.
+    """
+    result_dict_key_set = set(result_dict.keys())
+    if expected_key_set != result_dict_key_set:
+        # format the error message
+        missing_keys = expected_key_set - result_dict_key_set
+        redundant_keys = result_dict_key_set - expected_key_set
+        detail_messages = []
+        if missing_keys:
+            detail_messages.append('missing_keys: %s' % missing_keys)
+        if redundant_keys:
+            detail_messages.append('redundant_keys: %s' % redundant_keys)
+
+        err_msg = ("The return keys of function %s %s is not expected. (%s)"
+                   % (function_name,
+                      result_dict_key_set if result_dict_key_set else "{}",
+                      ', '.join(detail_messages)))
+        raise ValueError(err_msg)
+
+
 class DataGeneratorType(type):
 
     def __init__(cls, name, bases, attrs):  # noqa
@@ -238,13 +264,18 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
 
         if result_dict is None:
             result_dict = {}
-        _check_result_dict_type(result_dict, func_name)
-        # TODO: check whether the keys in result_dict matches data_definitions
-        # handler.check_result_dict_keys(
-        #     result_dict, data_definitions, func_name, handler_key, **handler_kwargs)
 
-        # group the data by handler
-        for key, config in six.viewitems(output_configs):
+        # check result_dict
+        _check_result_dict_type(result_dict, func_name)
+        expected_keys = set(
+            key for key, config in six.viewitems(output_configs)
+            if (self._handlers[config['handler']]
+                .is_return_data_expected(**config['handler_kwargs'])))
+        check_result_dict_keys(result_dict, expected_keys, func_name)
+
+        # write data
+        for key in sorted(expected_keys):
+            config = output_configs[key]
             data_definition = data_definitions.replace(key=key)
             self._handlers[config['handler']].write_data(
                 data_definition, result_dict[key], **config['handler_kwargs'])

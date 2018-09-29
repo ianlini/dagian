@@ -23,26 +23,6 @@ from .data_definition import DataDefinition
 SPARSE_FORMAT_SET = set(['csr', 'csc'])
 
 
-def check_redundant_keys(result_dict_key_set, will_generate_key_set,
-                         function_name, handler_key):
-    redundant_key_set = result_dict_key_set - will_generate_key_set
-    if len(redundant_key_set) > 0:
-        raise ValueError("The return keys of function {} {} have "
-                         "redundant keys {} while generating {} {}.".format(
-                             function_name, result_dict_key_set,
-                             redundant_key_set, handler_key,
-                             will_generate_key_set))
-
-
-def check_exact_match_keys(result_dict_key_set, will_generate_key_set,
-                           function_name, handler_key):
-    if will_generate_key_set != result_dict_key_set:
-        raise ValueError("The return keys of function {} {} doesn't "
-                         "match {} while generating {}.".format(
-                             function_name, result_dict_key_set,
-                             will_generate_key_set, handler_key))
-
-
 class DataHandler(six.with_metaclass(ABCMeta, object)):
 
     @abstractmethod
@@ -60,13 +40,6 @@ class DataHandler(six.with_metaclass(ABCMeta, object)):
             kwargs['data'] = data
         return kwargs
 
-    def check_result_dict_keys(self, result_dict, will_generate_keys,
-                               function_name, handler_key):
-        will_generate_key_set = set(will_generate_keys)
-        result_dict_key_set = set(result_dict.keys())
-        check_exact_match_keys(result_dict_key_set, will_generate_key_set,
-                               function_name, handler_key)
-
     @abstractmethod
     def write_data(self, data_definition, data, **kwargs):
         pass
@@ -77,6 +50,9 @@ class DataHandler(six.with_metaclass(ABCMeta, object)):
         with h5sparse.File(path) as h5f:
             h5f.create_dataset(new_key, data=data)
         self.close()
+
+    def is_return_data_expected(self, **kwargs):
+        return True
 
     def close(self):
         pass
@@ -126,20 +102,6 @@ class H5pyDataHandler(DataHandler):
                 for k in will_generate_keys
             }
         return kwargs
-
-    def check_result_dict_keys(self, result_dict, will_generate_keys,
-                               function_name, handler_key,
-                               manually_create_dataset=False):
-        will_generate_key_set = set(will_generate_keys)
-        result_dict_key_set = set(result_dict.keys())
-        if manually_create_dataset:
-            check_redundant_keys(result_dict_key_set, will_generate_key_set,
-                                 function_name, handler_key)
-            # TODO: check all the datasets is either manually created or in
-            #       result_dict_key_set
-        else:
-            check_exact_match_keys(result_dict_key_set, will_generate_key_set,
-                                   function_name, handler_key)
 
     def write_data(self, data_definition, data, allow_nan=False):
         with h5py.File(self.hdf_path, 'a') as h5f:
@@ -207,20 +169,6 @@ class PandasHDFDataHandler(DataHandler):
                 for k in will_generate_keys
             }
         return kwargs
-
-    def check_result_dict_keys(self, result_dict, will_generate_keys,
-                               function_name, handler_key,
-                               manually_append=False):
-        will_generate_key_set = set(will_generate_keys)
-        result_dict_key_set = set(result_dict.keys())
-        if manually_append:
-            check_redundant_keys(result_dict_key_set, will_generate_key_set,
-                                 function_name, handler_key)
-            # TODO: check all the datasets is either manually created or in
-            #       result_dict_key_set
-        else:
-            check_exact_match_keys(result_dict_key_set, will_generate_key_set,
-                                   function_name, handler_key)
 
     def write_data(self, data_definition, data, allow_nan=False):
         with pd.HDFStore(self.hdf_path, 'a') as hdf_store:
