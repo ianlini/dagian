@@ -23,7 +23,3 @@ pylint
 
 # for example
 scikit-learn
-# for Python 2: progressbar
-# progressbar
-# for Python 3: progressbar33
-progressbar33
