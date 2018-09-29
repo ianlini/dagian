@@ -47,7 +47,7 @@ with open('README.rst') as fp:
 
 setup(
     name='dagian',
-    version="0.0.1",
+    version="0.0.2",
     description=description,
     long_description=long_description,
     author='Ian Lin',
