@@ -136,3 +136,9 @@ id,lifetime,tested_age,weight,height,gender,income
         is_in_test_set = data_df.index.isin(test_id)
         sparse_is_in_test_set = csr_matrix(is_in_test_set[:, np.newaxis])
         return {'is_in_test_set': sparse_is_in_test_set}
+
+    @require('data_df')
+    @will_generate('h5py', 'nan', allow_nan=True)
+    def gen_nan(self, upstream_data):
+        nan = np.full(upstream_data['data_df'].shape[0], fill_value=np.nan, dtype=np.float32)
+        return {'nan': nan}
