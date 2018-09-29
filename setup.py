@@ -47,7 +47,7 @@ with open('README.rst') as fp:
 
 setup(
     name='dagian',
-    version="0.0.2",
+    version="0.0.2post1",
     description=description,
     long_description=long_description,
     author='Ian Lin',
@@ -74,5 +74,5 @@ setup(
         'License :: OSI Approved :: MIT License',
     ],
     test_suite='nose.collector',
-    packages=find_packages(),
+    packages=find_packages(exclude=('examples', 'examples.*')),
 )
