@@ -68,7 +68,7 @@ class DataHandler(six.with_metaclass(ABCMeta, object)):
                                function_name, handler_key)
 
     @abstractmethod
-    def write_data(self, result_dict):
+    def write_data(self, data_definition, data, **kwargs):
         pass
 
     def bundle(self, data_definition, path, new_key):
@@ -141,27 +141,26 @@ class H5pyDataHandler(DataHandler):
             check_exact_match_keys(result_dict_key_set, will_generate_key_set,
                                    function_name, handler_key)
 
-    def write_data(self, result_dict):
+    def write_data(self, data_definition, data, allow_nan=False):
         with h5py.File(self.hdf_path, 'a') as h5f:
-            for data_definition, result in six.viewitems(result_dict):
+            if not allow_nan:
                 # check nan
-                if ss.isspmatrix(result):
-                    if np.isnan(result.data).any():
+                if ss.isspmatrix(data):
+                    if np.isnan(data.data).any():
                         raise ValueError("data {} have nan".format(data_definition))
-                elif np.isnan(result).any():
+                elif np.isnan(data).any():
                     raise ValueError("data {} have nan".format(data_definition))
 
-                # write data
-                with SimpleTimer("[{}] Writing generated data {} to hdf5 file"
-                                 .format(type(self).__name__, data_definition),
-                                 end_in_new_line=False):
-                    if data_definition.to_json() in h5f:
-                        # h5f[key][...] = result
-                        raise NotImplementedError(
-                            "Overwriting not supported. Please report an issue.")
-                    else:
-                        h5sparse.Group(h5f).create_dataset(data_definition.to_json(), data=result)
-            h5f.flush()
+            # write data
+            with SimpleTimer("[{}] Writing generated data {} to hdf5 file"
+                             .format(type(self).__name__, data_definition),
+                             end_in_new_line=False):
+                if data_definition.to_json() in h5f:
+                    # h5f[key][...] = data
+                    raise NotImplementedError(
+                        "Overwriting not supported. Please report an issue.")
+                else:
+                    h5sparse.Group(h5f).create_dataset(data_definition.to_json(), data=data)
 
     def close(self):
         if self.h5f is not None:
@@ -223,35 +222,35 @@ class PandasHDFDataHandler(DataHandler):
             check_exact_match_keys(result_dict_key_set, will_generate_key_set,
                                    function_name, handler_key)
 
-    def write_data(self, result_dict):
+    def write_data(self, data_definition, data, allow_nan=False):
         with pd.HDFStore(self.hdf_path, 'a') as hdf_store:
-            for data_definition, result in six.viewitems(result_dict):
+            if not allow_nan:
                 # check nan
                 is_null = False
-                if isinstance(result, pd.DataFrame):
-                    if result.isnull().any().any():
+                if isinstance(data, pd.DataFrame):
+                    if data.isnull().any().any():
                         is_null = True
-                elif isinstance(result, pd.Series):
-                    if result.isnull().any():
+                elif isinstance(data, pd.Series):
+                    if data.isnull().any():
                         is_null = True
                 else:
-                    raise ValueError("PandasHDFDataHandler doesn't support type "
-                                     "{} (in key {})".format(type(result), data_definition))
+                    raise ValueError("PandasHDFDataHandler doesn't support type {} (in key {})"
+                                     .format(type(data), data_definition))
                 if is_null:
                     raise ValueError("data {} have nan".format(data_definition))
 
-                # write data
-                with SimpleTimer("[{}] Writing generated data {} to hdf5 file"
-                                 .format(type(self).__name__, data_definition),
-                                 end_in_new_line=False), \
-                        warnings.catch_warnings():
-                    warnings.simplefilter('ignore', NaturalNameWarning)
-                    if (isinstance(result, pd.DataFrame)
-                            and isinstance(result.index, pd.MultiIndex)
-                            and isinstance(result.columns, pd.MultiIndex)):
-                        hdf_store.put(data_definition.to_json(), result)
-                    else:
-                        hdf_store.put(data_definition.to_json(), result, format='table')
+            # write data
+            with SimpleTimer("[{}] Writing generated data {} to hdf5 file"
+                             .format(type(self).__name__, data_definition),
+                             end_in_new_line=False), \
+                    warnings.catch_warnings():
+                warnings.simplefilter('ignore', NaturalNameWarning)
+                if (isinstance(data, pd.DataFrame)
+                        and isinstance(data.index, pd.MultiIndex)
+                        and isinstance(data.columns, pd.MultiIndex)):
+                    hdf_store.put(data_definition.to_json(), data)
+                else:
+                    hdf_store.put(data_definition.to_json(), data, format='table')
 
     def bundle(self, data_definition, path, new_key):
         """Copy the data to another HDF5 file with new key."""
@@ -280,8 +279,8 @@ class MemoryDataHandler(DataHandler):
             return self.data[data_definition]
         return {k: self.data[k] for k in data_definition}
 
-    def write_data(self, result_dict):
-        self.data.update(result_dict)
+    def write_data(self, data_definition, data):
+        self.data[data_definition] = data
 
 
 class PickleDataHandler(DataHandler):
@@ -306,10 +305,9 @@ class PickleDataHandler(DataHandler):
                 data[data_def] = cPickle.load(fp)
         return data
 
-    def write_data(self, result_dict):
-        for data_definition, val in six.viewitems(result_dict):
-            pickle_path = self.pickle_dir / (data_definition.to_json() + ".pkl")
-            with SimpleTimer("Writing generated data %s to pickle file" % data_definition,
-                             end_in_new_line=False), \
-                    pickle_path.open('wb') as fp:
-                cPickle.dump(val, fp, protocol=cPickle.HIGHEST_PROTOCOL)
+    def write_data(self, data_definition, data):
+        pickle_path = self.pickle_dir / (data_definition.to_json() + ".pkl")
+        with SimpleTimer("Writing generated data %s to pickle file" % data_definition,
+                         end_in_new_line=False), \
+                pickle_path.open('wb') as fp:
+            cPickle.dump(data, fp, protocol=cPickle.HIGHEST_PROTOCOL)

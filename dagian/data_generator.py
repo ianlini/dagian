@@ -1,6 +1,6 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
 import inspect
-from collections import defaultdict, Counter
+from collections import Counter
 from copy import deepcopy
 try:
     from inspect import signature
@@ -244,14 +244,10 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
         #     result_dict, data_definitions, func_name, handler_key, **handler_kwargs)
 
         # group the data by handler
-        handler_data_dict = defaultdict(dict)
         for key, config in six.viewitems(output_configs):
             data_definition = data_definitions.replace(key=key)
-            handler_data_dict[config['handler']][data_definition] = result_dict[key]
-        # write the data for each handler
-        for handler_name, data_dict in six.viewitems(handler_data_dict):
-            handler = self._handlers[handler_name]
-            handler.write_data(data_dict)
+            self._handlers[config['handler']].write_data(
+                data_definition, result_dict[key], **config['handler_kwargs'])
 
     def generate(self, data_definitions, dag_output_path=None):
         """

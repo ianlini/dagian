@@ -69,6 +69,7 @@ def test_generate_lifetime_features():
                           'divisor': 'height'}},
                 {'key': 'sequential_division',
                  'args': {'sequence': [{'key': 'weight'}, 'height', {'key': 'height'}]}},
+                'nan',
             ],
         },
         'structure_config': {
@@ -87,6 +88,6 @@ def test_generate_lifetime_features():
         assert set(data_bundle_h5f['test_dict']) == {'comparison'}
         assert (set(data_bundle_h5f['test_dict/comparison'])
                 == set(bundle_config['structure']['test_dict']['comparison']))
-        assert data_bundle_h5f['features'].shape == (6, 14)
+        assert data_bundle_h5f['features'].shape == (6, 15)
 
     rmtree(test_output_dir)
