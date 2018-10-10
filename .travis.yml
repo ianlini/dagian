@@ -18,10 +18,6 @@ matrix:
       dist: xenial
       sudo: true
 
-cache:
-  directories:
-    - $HOME/.cache/pip
-
 install:
   - pip install -U pip wheel
   - pip install -U Cython
