@@ -1,6 +1,7 @@
 notifications:
-  slack: true
-  email: true
+  email:
+    on_success: change
+    on_failure: always
 
 addons:
   apt:
