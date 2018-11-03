@@ -12,7 +12,7 @@ from tqdm import trange
 from .data_definition import DataDefinition
 
 
-def get_data_definitions_from_data_definition_dict_in_structure(raw_data_def):
+def get_data_definitions_from_raw_data_definition(raw_data_def):
     key = raw_data_def['key']
     args = raw_data_def['args']
     if 'loop' not in raw_data_def:
@@ -33,7 +33,7 @@ def get_data_definitions_from_list_in_structure(structure):
     for raw_data_def in structure:
         if isinstance(raw_data_def, dict):
             data_definitions.extend(
-                get_data_definitions_from_data_definition_dict_in_structure(raw_data_def))
+                get_data_definitions_from_raw_data_definition(raw_data_def))
         elif isinstance(raw_data_def, basestring):
             data_definitions.append(DataDefinition(raw_data_def))
         else:
@@ -44,7 +44,7 @@ def get_data_definitions_from_list_in_structure(structure):
 
 def get_data_definitions_from_dict_in_structure(structure):
     if 'key' in structure:
-        data_definitions = get_data_definitions_from_data_definition_dict_in_structure(structure)
+        data_definitions = get_data_definitions_from_raw_data_definition(structure)
     else:
         data_definitions = []
         for _, val in six.viewitems(structure):
@@ -126,8 +126,8 @@ class DataBundlerMixin(object):
             key_set = set()
             for data_definition in data_definitions:
                 if data_definition.key in key_set:
-                    raise ValueError("Duplicated key {} in a list structure."
-                                     "Use dict structure to distinguish them instead."
+                    raise ValueError("Duplicated key {} in a list structure. Use concat mode or "
+                                     "dict structure to distinguish them instead."
                                      .format(data_definition.key))
                 key_set.add(data_definition.key)
                 self.get_handler(data_definition.key).bundle(
@@ -136,7 +136,10 @@ class DataBundlerMixin(object):
     def _bundle_dict_in_structure(
             self, structure, data_bundle_hdf_path, buffer_size, structure_config, dset_name):
         if 'key' in structure:
-            data_definition = DataDefinition(structure['key'], structure['args'])
+            if 'loop' in structure:
+                raise ValueError("Cannot use 'loop' in a dict structure. Use list structure with "
+                                 "concat mode instead.")
+            data_definition = get_data_definitions_from_raw_data_definition(structure)[0]
             self.get_handler(data_definition.key).bundle(
                 data_definition, data_bundle_hdf_path, dset_name)
         else:
