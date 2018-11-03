@@ -1,6 +1,7 @@
 notifications:
-  slack: true
-  email: true
+  email:
+    on_success: change
+    on_failure: always
 
 addons:
   apt:
@@ -17,10 +18,8 @@ matrix:
     - python: '3.7'
       dist: xenial
       sudo: true
-
-cache:
-  directories:
-    - $HOME/.cache/pip
+    - python: '3.6'
+      env: TOXENV=flake8
 
 install:
   - pip install -U pip wheel
