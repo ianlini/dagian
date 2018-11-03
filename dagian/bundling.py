@@ -12,12 +12,28 @@ from tqdm import trange
 from .data_definition import DataDefinition
 
 
+def get_data_definitions_from_data_definition_dict_in_structure(raw_data_def):
+    key = raw_data_def['key']
+    args = raw_data_def['args']
+    if 'loop' not in raw_data_def:
+        data_definitions = [DataDefinition(key, args)]
+    else:
+        # loop over each argument changes
+        loop = raw_data_def['loop']
+        data_definitions = []
+        for arg_changes in loop:
+            new_args = args.copy()
+            new_args.update(arg_changes)
+            data_definitions.append(DataDefinition(key, new_args))
+    return data_definitions
+
+
 def get_data_definitions_from_list_in_structure(structure):
     data_definitions = []
     for raw_data_def in structure:
         if isinstance(raw_data_def, dict):
-            data_definitions.append(
-                DataDefinition(raw_data_def['key'], raw_data_def['args']))
+            data_definitions.extend(
+                get_data_definitions_from_data_definition_dict_in_structure(raw_data_def))
         elif isinstance(raw_data_def, basestring):
             data_definitions.append(DataDefinition(raw_data_def))
         else:
@@ -28,7 +44,7 @@ def get_data_definitions_from_list_in_structure(structure):
 
 def get_data_definitions_from_dict_in_structure(structure):
     if 'key' in structure:
-        data_definitions = [DataDefinition(structure['key'], structure['args'])]
+        data_definitions = get_data_definitions_from_data_definition_dict_in_structure(structure)
     else:
         data_definitions = []
         for _, val in six.viewitems(structure):

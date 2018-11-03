@@ -35,10 +35,10 @@ id,lifetime,tested_age,weight,height,gender,income
         return {'lifetime': data_df['lifetime']}
 
     @require('data_df')
-    @will_generate('h5py', ['weight', 'height'])
+    @will_generate('h5py', ['weight', 'height', 'income'])
     def gen_raw_data_features(self, upstream_data):
         data_df = upstream_data['data_df']
-        return data_df[['weight', 'height']]
+        return data_df[['weight', 'height', 'income']]
 
     @require('data_df')
     @will_generate('memory', 'mem_raw_data')
