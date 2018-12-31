@@ -53,7 +53,11 @@ def test_generate_lifetime_features():
                 'pd_raw_data',
                 'BMI',
                 {'key': 'division',
-                 'args': {'dividend': 'weight'}},
+                 'args': {'dividend': 'weight'},
+                 'loop': [
+                     {},  # default divisor: height
+                     {'divisor': 'income'},
+                 ]},
                 {'key': 'division_2_divisor',
                  'args': {'dividend': 'weight',
                           'divisor1': 'height',
@@ -88,6 +92,6 @@ def test_generate_lifetime_features():
         assert set(data_bundle_h5f['test_dict']) == {'comparison'}
         assert (set(data_bundle_h5f['test_dict/comparison'])
                 == set(bundle_config['structure']['test_dict']['comparison']))
-        assert data_bundle_h5f['features'].shape == (6, 15)
+        assert data_bundle_h5f['features'].shape == (6, 16)
 
     rmtree(test_output_dir)
