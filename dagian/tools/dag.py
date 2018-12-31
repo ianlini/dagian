@@ -3,6 +3,7 @@ import sys
 import argparse
 
 import yaml
+from dotenv import load_dotenv, find_dotenv
 
 from .config import (
     get_data_generator_class_from_config,
@@ -24,9 +25,12 @@ def draw_dag(argv=sys.argv[1:]):
     parser.add_argument('-d', '--dag-output-path',
                         default="dag.svg",
                         help="output image path")
+    parser.add_argument('-e', '--env-file-path', default=find_dotenv(),
+                        help=".env file path to define environment variables")
     parser.add_argument('-i', '--involved', action='store_true',
                         help="annotate the involved nodes and skipped nodes")
     args = parser.parse_args(argv)
+    load_dotenv(args.env_file_path)
     with open(args.global_config) as fp:
         global_config = yaml.safe_load(fp)
     with open(args.bundle_config) as fp:

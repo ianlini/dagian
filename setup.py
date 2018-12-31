@@ -30,6 +30,7 @@ else:
         'pathlib2',
         'funcsigs',
         'tqdm',
+        'python-dotenv',
     ]
     tests_require = []
 
