@@ -5,6 +5,7 @@ import collections
 
 import yaml
 from pathlib2 import Path
+from dotenv import load_dotenv, find_dotenv
 
 from .config import get_data_generator_from_config
 from ..bundling import get_data_definitions_from_structure
@@ -55,9 +56,12 @@ def dagian_run(argv=sys.argv[1:]):
                         help="the path of the bundle configuration YAML file")
     parser.add_argument('-d', '--dag-output-path', default=None,
                         help="draw the involved subDAG to the provided path")
+    parser.add_argument('-e', '--env-file-path', default=find_dotenv(),
+                        help=".env file path to define environment variables")
     parser.add_argument('--no-bundle', action='store_true',
                         help="not generate the data bundle")
     args = parser.parse_args(argv)
+    load_dotenv(args.env_file_path)
     with open(args.global_config) as fp:
         global_config = yaml.safe_load(fp)
     with open(args.bundle_config) as fp:
