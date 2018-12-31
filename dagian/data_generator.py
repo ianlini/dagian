@@ -73,7 +73,7 @@ class DataGeneratorType(type):
             parameters = []
             for name, p in sig.parameters.items():
                 # We only take p.kind in {POSITIONAL_OR_KEYWORD, KEYWORD_ONLY} with valid name.
-                if name in ('self', 'upstream_data'):
+                if name in ('self', 'context'):
                     continue
                 elif p.kind in (p.POSITIONAL_ONLY, p.VAR_POSITIONAL):
                     raise ValueError(
@@ -245,9 +245,10 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
         # prepare kwargs for function
         data = self._get_upstream_data(dag, data_definitions)
         if data:
-            function_kwargs = {'upstream_data': data}
+            context = {'upstream_data': data}
         else:
-            function_kwargs = {}
+            context = {}
+        function_kwargs = {'context': context}
         if data_definitions.args:
             function_kwargs.update(deepcopy(data_definitions.args._dict))
 
