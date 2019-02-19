@@ -3,6 +3,7 @@ import os.path
 from abc import ABCMeta, abstractmethod
 from functools import partial
 import warnings
+from collections import namedtuple
 
 from bistiming import SimpleTimer
 import h5py
@@ -51,11 +52,25 @@ class DataHandler(six.with_metaclass(ABCMeta, object)):
             h5f.create_dataset(new_key, data=data)
         self.close()
 
+    def update_context(self, context, data_definition, **kwargs):
+        pass
+
     def is_return_data_expected(self, **kwargs):
         return True
 
     def close(self):
         pass
+
+
+class H5pyDataHandlerArgs(
+        namedtuple('H5pyDataHandlerArgs', ['allow_nan',
+                                           'create_dataset_context',
+                                           'create_dataset_with_sparse_format'])):
+    def __new__(
+            cls, allow_nan=False, create_dataset_context=None,
+            create_dataset_with_sparse_format=None):
+        return super(H5pyDataHandlerArgs, cls).__new__(
+            cls, allow_nan, create_dataset_context, create_dataset_with_sparse_format)
 
 
 class H5pyDataHandler(DataHandler):
@@ -86,26 +101,26 @@ class H5pyDataHandler(DataHandler):
             return h5sparse.Group(h5f)[data_definition.to_json()]
         return {k: h5sparse.Group(h5f)[k.to_json()] for k in data_definition}
 
-    def get_function_kwargs(self, will_generate_keys, data,
-                            manually_create_dataset=False):
-        kwargs = {}
-        if len(data) > 0:
-            kwargs['data'] = data
-        if manually_create_dataset is True:
-            kwargs['create_dataset_functions'] = {
-                k: partial(self.h5f.create_dataset, k)
-                for k in will_generate_keys
-            }
-        elif manually_create_dataset in SPARSE_FORMAT_SET:
-            kwargs['create_dataset_functions'] = {
-                k: partial(h5sparse.Group(self.h5f).create_dataset, k)
-                for k in will_generate_keys
-            }
-        return kwargs
+    # def update_context(self, context, data_definition, **kwargs):
+    #     args = H5pyDataHandlerArgs(**kwargs)
+    #     if args.create_dataset_context is not None:
+    #         key = data_definition.key
+    #         functions = context.setdefault(args.create_dataset_context, {})
+    #         assert key not in functions
+    #         import ipdb; ipdb.set_trace()
+    #         # a difficult issue here: we don't have writable h5f here
+    #         if args.create_dataset_with_sparse_format is None:
+    #             functions[key] = partial(self.h5f.create_dataset, key)
+    #         elif args.create_dataset_with_sparse_format in SPARSE_FORMAT_SET:
+    #             kwargs['create_dataset_functions'] = {
+    #                 k: partial(h5sparse.Group(self.h5f).create_dataset, k)
+    #                 for k in will_generate_keys
+    #             }
 
-    def write_data(self, data_definition, data, allow_nan=False):
+    def write_data(self, data_definition, data, **kwargs):
+        args = H5pyDataHandlerArgs(**kwargs)
         with h5py.File(self.hdf_path, 'a') as h5f:
-            if not allow_nan:
+            if not args.allow_nan:
                 # check nan
                 if ss.isspmatrix(data):
                     if np.isnan(data.data).any():
@@ -123,6 +138,10 @@ class H5pyDataHandler(DataHandler):
                         "Overwriting not supported. Please report an issue.")
                 else:
                     h5sparse.Group(h5f).create_dataset(data_definition.to_json(), data=data)
+
+    def is_return_data_expected(self, **kwargs):
+        args = H5pyDataHandlerArgs(**kwargs)
+        return args.create_dataset_context is None
 
     def close(self):
         if self.h5f is not None:
