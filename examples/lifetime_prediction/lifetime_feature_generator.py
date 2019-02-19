@@ -11,9 +11,9 @@ from dagian.decorators import (
 
 
 class LifetimeFeatureGenerator(fg.FeatureGenerator):
-    def __init__(self, h5py_hdf_path, data_csv_path):
+    def __init__(self, h5py_hdf_dir, data_csv_path):
         super(LifetimeFeatureGenerator, self).__init__(
-            h5py_hdf_path=h5py_hdf_path)
+            h5py_hdf_dir=h5py_hdf_dir)
         self.data_csv_path = data_csv_path
 
     @will_generate('memory', 'data_df')

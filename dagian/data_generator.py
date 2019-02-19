@@ -317,17 +317,17 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
 
 class FeatureGenerator(DataGenerator):
 
-    def __init__(self, handlers=None, h5py_hdf_path=None, pandas_hdf_path=None,
+    def __init__(self, handlers=None, h5py_hdf_dir=None, pandas_hdf_path=None,
                  pickle_dir=None):
         if handlers is None:
             handlers = {}
         if 'memory' in self._handler_set and 'memory' not in handlers:
             handlers['memory'] = MemoryDataHandler()
         if 'h5py' in self._handler_set and 'h5py' not in handlers:
-            if h5py_hdf_path is None:
-                raise ValueError("h5py_hdf_path should be specified "
+            if h5py_hdf_dir is None:
+                raise ValueError("h5py_hdf_dir should be specified "
                                  "when initiating FeatureGenerator.")
-            handlers['h5py'] = H5pyDataHandler(h5py_hdf_path)
+            handlers['h5py'] = H5pyDataHandler(h5py_hdf_dir)
         if 'pandas_hdf' in self._handler_set and 'pandas_hdf' not in handlers:
             if pandas_hdf_path is None:
                 raise ValueError("pandas_hdf_path should be specified "

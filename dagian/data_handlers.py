@@ -75,31 +75,32 @@ class H5pyDataHandlerArgs(
 
 class H5pyDataHandler(DataHandler):
 
-    def __init__(self, hdf_path):
-        hdf_dir = os.path.dirname(hdf_path)
-        if hdf_dir != '':
-            mkdir_p(hdf_dir)
-        # create an empty file if the file doesn't exists
-        h5py.File(hdf_path, 'a').close()
-        self.hdf_path = hdf_path
-        self.h5f = None
+    def __init__(self, hdf_dir):
+        self.hdf_dir = Path(hdf_dir)
+        self.hdf_dir.mkdir(parents=True, exist_ok=True)
+        self.read_only_h5f_dict = {}
+
+    def _get_hdf_path(self, data_definition):
+        return self.hdf_dir / (data_definition.to_json() + ".h5")
 
     def can_skip(self, data_definition):
-        with h5py.File(self.hdf_path, 'r') as h5f:
-            if data_definition.to_json() in h5f:
-                return True
+        hdf_path = self._get_hdf_path(data_definition)
+        if hdf_path.exists():
+            return True
         return False
 
-    def get_read_only_h5py_file(self):
-        if self.h5f is None:
-            self.h5f = h5py.File(self.hdf_path, 'r')
-        return self.h5f
+    def _get_read_only_h5py_file(self, data_definition):
+        if data_definition in self.read_only_h5f_dict:
+            return self.read_only_h5f_dict[data_definition]
+        h5f = h5py.File(self._get_hdf_path(data_definition), 'r')
+        self.read_only_h5f_dict[data_definition] = h5f
+        return h5f
 
     def get(self, data_definition):
-        h5f = self.get_read_only_h5py_file()
         if isinstance(data_definition, DataDefinition):
-            return h5sparse.Group(h5f)[data_definition.to_json()]
-        return {k: h5sparse.Group(h5f)[k.to_json()] for k in data_definition}
+            return h5sparse.Group(self._get_read_only_h5py_file(data_definition))['data']
+        return {data_def: h5sparse.Group(self._get_read_only_h5py_file(data_def))['data']
+                for data_def in data_definition}
 
     # def update_context(self, context, data_definition, **kwargs):
     #     args = H5pyDataHandlerArgs(**kwargs)
@@ -119,34 +120,34 @@ class H5pyDataHandler(DataHandler):
 
     def write_data(self, data_definition, data, **kwargs):
         args = H5pyDataHandlerArgs(**kwargs)
-        with h5py.File(self.hdf_path, 'a') as h5f:
-            if not args.allow_nan:
-                # check nan
-                if ss.isspmatrix(data):
-                    if np.isnan(data.data).any():
-                        raise ValueError("data {} have nan".format(data_definition))
-                elif np.isnan(data).any():
+        hdf_path = self._get_hdf_path(data_definition)
+        if hdf_path.exists():
+            raise NotImplementedError(
+                "Overwriting not supported. Please report an issue.")
+        if not args.allow_nan:
+            # check nan
+            if ss.isspmatrix(data):
+                if np.isnan(data.data).any():
                     raise ValueError("data {} have nan".format(data_definition))
+            elif np.isnan(data).any():
+                raise ValueError("data {} have nan".format(data_definition))
 
-            # write data
-            with SimpleTimer("[{}] Writing generated data {} to hdf5 file"
-                             .format(type(self).__name__, data_definition),
-                             end_in_new_line=False):
-                if data_definition.to_json() in h5f:
-                    # h5f[key][...] = data
-                    raise NotImplementedError(
-                        "Overwriting not supported. Please report an issue.")
-                else:
-                    h5sparse.Group(h5f).create_dataset(data_definition.to_json(), data=data)
+        # write data
+        with h5py.File(hdf_path, 'a') as h5f, \
+                SimpleTimer("[{}] Writing generated data {} to hdf5 file"
+                            .format(type(self).__name__, data_definition),
+                            end_in_new_line=False):
+            h5sparse.Group(h5f).create_dataset('data', data=data)
 
     def is_return_data_expected(self, **kwargs):
         args = H5pyDataHandlerArgs(**kwargs)
         return args.create_dataset_context is None
 
     def close(self):
-        if self.h5f is not None:
-            self.h5f.close()
-            self.h5f = None
+        if self.read_only_h5f_dict:
+            for data_definition, h5f in six.viewitems(self.read_only_h5f_dict):
+                h5f.close()
+            self.read_only_h5f_dict = {}
 
 
 class PandasHDFDataHandler(DataHandler):
