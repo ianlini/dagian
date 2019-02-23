@@ -9,7 +9,7 @@ from dagian.tools.dagian_runner import dagian_run_with_configs
 
 def test_generate_lifetime_features():
     test_output_dir = mkdtemp(prefix="dagian_test_output_")
-    h5py_hdf_path = join(test_output_dir, "h5py.h5")
+    h5py_hdf_dir = join(test_output_dir, "h5py")
     pandas_hdf_path = join(test_output_dir, "pandas.h5")
     pickle_dir = join(test_output_dir, "pickle")
     data_bundles_dir = join(test_output_dir, "data_bundles")
@@ -19,7 +19,7 @@ def test_generate_lifetime_features():
                            '.LifetimeFeatureGenerator',
         'data_bundles_dir': data_bundles_dir,
         'generator_kwargs': {
-            'h5py_hdf_path': h5py_hdf_path,
+            'h5py_hdf_dir': h5py_hdf_dir,
             'pandas_hdf_path': pandas_hdf_path,
             'pickle_dir': pickle_dir,
         },
@@ -47,7 +47,8 @@ def test_generate_lifetime_features():
                 'weight',
                 'height',
                 'mem_raw_data',
-                # 'man_raw_data',
+                'man_raw_data',
+                # 'man_sparse_raw_data',
                 'pd_weight',
                 'pd_height',
                 'pd_raw_data',
@@ -92,6 +93,6 @@ def test_generate_lifetime_features():
         assert set(data_bundle_h5f['test_dict']) == {'comparison'}
         assert (set(data_bundle_h5f['test_dict/comparison'])
                 == set(bundle_config['structure']['test_dict']['comparison']))
-        assert data_bundle_h5f['features'].shape == (6, 16)
+        assert data_bundle_h5f['features'].shape == (6, 18)
 
     rmtree(test_output_dir)

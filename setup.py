@@ -18,7 +18,7 @@ else:
         'six',
         'future',
         'mkdir-p',
-        'h5py',
+        'h5py>=2.7',
         'bistiming>=0.1.1',
         'numpy',
         'scipy',

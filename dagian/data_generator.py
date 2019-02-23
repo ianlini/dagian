@@ -73,7 +73,7 @@ class DataGeneratorType(type):
             parameters = []
             for name, p in sig.parameters.items():
                 # We only take p.kind in {POSITIONAL_OR_KEYWORD, KEYWORD_ONLY} with valid name.
-                if name in ('self', 'upstream_data'):
+                if name in ('self', 'context'):
                     continue
                 elif p.kind in (p.POSITIONAL_ONLY, p.VAR_POSITIONAL):
                     raise ValueError(
@@ -245,19 +245,20 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
         # prepare kwargs for function
         data = self._get_upstream_data(dag, data_definitions)
         if data:
-            function_kwargs = {'upstream_data': data}
+            context = {'upstream_data': data}
         else:
-            function_kwargs = {}
+            context = {}
+        function_kwargs = {'context': context}
         if data_definitions.args:
             function_kwargs.update(deepcopy(data_definitions.args._dict))
 
-        # TODO: add handler-specific arguments
-        # handler = self._handlers[handler_key]
-        # function_kwargs = handler.get_function_kwargs(
-        #     data_definitions=data_definitions,
-        #     data=data,
-        #     **handler_kwargs
-        # )
+        # add handler-specific context
+        for key, config in six.viewitems(output_configs):
+            handler = self._handlers[config['handler']]
+            data_definition = data_definitions.replace(key=key)
+            handler.update_context(context, data_definition, **config['handler_kwargs'])
+
+        # run function
         function = getattr(self, func_name)
         result_dict = _run_function(function, data_definitions, function_kwargs)
         self.close()
@@ -316,17 +317,17 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
 
 class FeatureGenerator(DataGenerator):
 
-    def __init__(self, handlers=None, h5py_hdf_path=None, pandas_hdf_path=None,
+    def __init__(self, handlers=None, h5py_hdf_dir=None, pandas_hdf_path=None,
                  pickle_dir=None):
         if handlers is None:
             handlers = {}
         if 'memory' in self._handler_set and 'memory' not in handlers:
             handlers['memory'] = MemoryDataHandler()
         if 'h5py' in self._handler_set and 'h5py' not in handlers:
-            if h5py_hdf_path is None:
-                raise ValueError("h5py_hdf_path should be specified "
+            if h5py_hdf_dir is None:
+                raise ValueError("h5py_hdf_dir should be specified "
                                  "when initiating FeatureGenerator.")
-            handlers['h5py'] = H5pyDataHandler(h5py_hdf_path)
+            handlers['h5py'] = H5pyDataHandler(h5py_hdf_dir)
         if 'pandas_hdf' in self._handler_set and 'pandas_hdf' not in handlers:
             if pandas_hdf_path is None:
                 raise ValueError("pandas_hdf_path should be specified "

@@ -3,6 +3,7 @@ import os.path
 from abc import ABCMeta, abstractmethod
 from functools import partial
 import warnings
+from collections import namedtuple
 
 from bistiming import SimpleTimer
 import h5py
@@ -51,6 +52,9 @@ class DataHandler(six.with_metaclass(ABCMeta, object)):
             h5f.create_dataset(new_key, data=data)
         self.close()
 
+    def update_context(self, context, data_definition, **kwargs):
+        pass
+
     def is_return_data_expected(self, **kwargs):
         return True
 
@@ -58,76 +62,98 @@ class DataHandler(six.with_metaclass(ABCMeta, object)):
         pass
 
 
+class H5pyDataHandlerArgs(
+        namedtuple('H5pyDataHandlerArgs', ['allow_nan',
+                                           'create_dataset_context',
+                                           'create_dataset_with_sparse_format'])):
+    def __new__(
+            cls, allow_nan=False, create_dataset_context=None,
+            create_dataset_with_sparse_format=None):
+        return super(H5pyDataHandlerArgs, cls).__new__(
+            cls, allow_nan, create_dataset_context, create_dataset_with_sparse_format)
+
+
 class H5pyDataHandler(DataHandler):
 
-    def __init__(self, hdf_path):
-        hdf_dir = os.path.dirname(hdf_path)
-        if hdf_dir != '':
-            mkdir_p(hdf_dir)
-        # create an empty file if the file doesn't exists
-        h5py.File(hdf_path, 'a').close()
-        self.hdf_path = hdf_path
-        self.h5f = None
+    def __init__(self, hdf_dir):
+        self.hdf_dir = Path(hdf_dir)
+        self.hdf_dir.mkdir(parents=True, exist_ok=True)
+        self.h5f_dict = {}
+
+    def _get_hdf_path(self, data_definition):
+        return self.hdf_dir / (data_definition.to_json() + ".h5")
 
     def can_skip(self, data_definition):
-        with h5py.File(self.hdf_path, 'r') as h5f:
-            if data_definition.to_json() in h5f:
-                return True
+        hdf_path = self._get_hdf_path(data_definition)
+        if hdf_path.exists():
+            return True
         return False
 
-    def get_read_only_h5py_file(self):
-        if self.h5f is None:
-            self.h5f = h5py.File(self.hdf_path, 'r')
-        return self.h5f
+    def _get_read_only_h5py_file(self, data_definition):
+        if data_definition in self.h5f_dict:
+            return self.h5f_dict[data_definition]
+        h5f = h5py.File(self._get_hdf_path(data_definition), 'r')
+        self.h5f_dict[data_definition] = h5f
+        return h5f
 
     def get(self, data_definition):
-        h5f = self.get_read_only_h5py_file()
         if isinstance(data_definition, DataDefinition):
-            return h5sparse.Group(h5f)[data_definition.to_json()]
-        return {k: h5sparse.Group(h5f)[k.to_json()] for k in data_definition}
+            return h5sparse.Group(self._get_read_only_h5py_file(data_definition))['data']
+        return {data_def: h5sparse.Group(self._get_read_only_h5py_file(data_def))['data']
+                for data_def in data_definition}
 
-    def get_function_kwargs(self, will_generate_keys, data,
-                            manually_create_dataset=False):
-        kwargs = {}
-        if len(data) > 0:
-            kwargs['data'] = data
-        if manually_create_dataset is True:
-            kwargs['create_dataset_functions'] = {
-                k: partial(self.h5f.create_dataset, k)
-                for k in will_generate_keys
-            }
-        elif manually_create_dataset in SPARSE_FORMAT_SET:
-            kwargs['create_dataset_functions'] = {
-                k: partial(h5sparse.Group(self.h5f).create_dataset, k)
-                for k in will_generate_keys
-            }
-        return kwargs
+    def update_context(self, context, data_definition, **kwargs):
+        args = H5pyDataHandlerArgs(**kwargs)
+        if args.create_dataset_context is None:
+            return
+        functions = context.setdefault(args.create_dataset_context, {})
+        assert data_definition.key not in functions
 
-    def write_data(self, data_definition, data, allow_nan=False):
-        with h5py.File(self.hdf_path, 'a') as h5f:
-            if not allow_nan:
-                # check nan
-                if ss.isspmatrix(data):
-                    if np.isnan(data.data).any():
-                        raise ValueError("data {} have nan".format(data_definition))
-                elif np.isnan(data).any():
+        # open h5
+        assert data_definition not in self.h5f_dict
+        hdf_path = self._get_hdf_path(data_definition)
+        assert not hdf_path.exists()
+        h5f = h5py.File(hdf_path, 'w')
+        self.h5f_dict[data_definition] = h5f
+
+        if args.create_dataset_with_sparse_format is None:
+            functions[data_definition.key] = partial(h5f.create_dataset, 'data')
+        # elif args.create_dataset_with_sparse_format in SPARSE_FORMAT_SET:
+        #     functions[data_definition.key] = partial(h5sparse.Group(h5f).create_dataset, 'data')
+        else:
+            raise ValueError("The sparse format '%s' is not supported."
+                             % args.create_dataset_with_sparse_format)
+
+    def write_data(self, data_definition, data, **kwargs):
+        args = H5pyDataHandlerArgs(**kwargs)
+        hdf_path = self._get_hdf_path(data_definition)
+        if hdf_path.exists():
+            raise NotImplementedError(
+                "Overwriting not supported. Please report an issue.")
+        if not args.allow_nan:
+            # check nan
+            if ss.isspmatrix(data):
+                if np.isnan(data.data).any():
                     raise ValueError("data {} have nan".format(data_definition))
+            elif np.isnan(data).any():
+                raise ValueError("data {} have nan".format(data_definition))
 
-            # write data
-            with SimpleTimer("[{}] Writing generated data {} to hdf5 file"
-                             .format(type(self).__name__, data_definition),
-                             end_in_new_line=False):
-                if data_definition.to_json() in h5f:
-                    # h5f[key][...] = data
-                    raise NotImplementedError(
-                        "Overwriting not supported. Please report an issue.")
-                else:
-                    h5sparse.Group(h5f).create_dataset(data_definition.to_json(), data=data)
+        # write data
+        with h5py.File(hdf_path, 'w') as h5f, \
+                SimpleTimer("[{}] Writing generated data {} to hdf5 file"
+                            .format(type(self).__name__, data_definition),
+                            end_in_new_line=False):
+            h5sparse.Group(h5f).create_dataset('data', data=data)
+
+    def is_return_data_expected(self, **kwargs):
+        args = H5pyDataHandlerArgs(**kwargs)
+        return args.create_dataset_context is None
 
     def close(self):
-        if self.h5f is not None:
-            self.h5f.close()
-            self.h5f = None
+        if self.h5f_dict:
+            for data_definition, h5f in six.viewitems(self.h5f_dict):
+                h5f.close()
+            self.h5f_dict = {}
 
 
 class PandasHDFDataHandler(DataHandler):

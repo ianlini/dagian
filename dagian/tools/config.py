@@ -15,8 +15,8 @@ data_bundles_dir: data_bundles
 # The additional arguments that will be given when initiating the data generator
 # object.
 generator_kwargs:
-  h5py_hdf_path:
-    h5py.h5
+  h5py_hdf_dir:
+    h5py
   pandas_hdf_path:
     pandas.h5
 """
