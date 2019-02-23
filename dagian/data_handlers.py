@@ -78,7 +78,7 @@ class H5pyDataHandler(DataHandler):
     def __init__(self, hdf_dir):
         self.hdf_dir = Path(hdf_dir)
         self.hdf_dir.mkdir(parents=True, exist_ok=True)
-        self.read_only_h5f_dict = {}
+        self.h5f_dict = {}
 
     def _get_hdf_path(self, data_definition):
         return self.hdf_dir / (data_definition.to_json() + ".h5")
@@ -90,10 +90,10 @@ class H5pyDataHandler(DataHandler):
         return False
 
     def _get_read_only_h5py_file(self, data_definition):
-        if data_definition in self.read_only_h5f_dict:
-            return self.read_only_h5f_dict[data_definition]
+        if data_definition in self.h5f_dict:
+            return self.h5f_dict[data_definition]
         h5f = h5py.File(self._get_hdf_path(data_definition), 'r')
-        self.read_only_h5f_dict[data_definition] = h5f
+        self.h5f_dict[data_definition] = h5f
         return h5f
 
     def get(self, data_definition):
@@ -102,21 +102,27 @@ class H5pyDataHandler(DataHandler):
         return {data_def: h5sparse.Group(self._get_read_only_h5py_file(data_def))['data']
                 for data_def in data_definition}
 
-    # def update_context(self, context, data_definition, **kwargs):
-    #     args = H5pyDataHandlerArgs(**kwargs)
-    #     if args.create_dataset_context is not None:
-    #         key = data_definition.key
-    #         functions = context.setdefault(args.create_dataset_context, {})
-    #         assert key not in functions
-    #         import ipdb; ipdb.set_trace()
-    #         # a difficult issue here: we don't have writable h5f here
-    #         if args.create_dataset_with_sparse_format is None:
-    #             functions[key] = partial(self.h5f.create_dataset, key)
-    #         elif args.create_dataset_with_sparse_format in SPARSE_FORMAT_SET:
-    #             kwargs['create_dataset_functions'] = {
-    #                 k: partial(h5sparse.Group(self.h5f).create_dataset, k)
-    #                 for k in will_generate_keys
-    #             }
+    def update_context(self, context, data_definition, **kwargs):
+        args = H5pyDataHandlerArgs(**kwargs)
+        if args.create_dataset_context is None:
+            return
+        functions = context.setdefault(args.create_dataset_context, {})
+        assert data_definition.key not in functions
+
+        # open h5
+        assert data_definition not in self.h5f_dict
+        hdf_path = self._get_hdf_path(data_definition)
+        assert not hdf_path.exists()
+        h5f = h5py.File(hdf_path, 'w')
+        self.h5f_dict[data_definition] = h5f
+
+        if args.create_dataset_with_sparse_format is None:
+            functions[data_definition.key] = partial(h5f.create_dataset, 'data')
+        # elif args.create_dataset_with_sparse_format in SPARSE_FORMAT_SET:
+        #     functions[data_definition.key] = partial(h5sparse.Group(h5f).create_dataset, 'data')
+        else:
+            raise ValueError("The sparse format '%s' is not supported."
+                             % args.create_dataset_with_sparse_format)
 
     def write_data(self, data_definition, data, **kwargs):
         args = H5pyDataHandlerArgs(**kwargs)
@@ -133,7 +139,7 @@ class H5pyDataHandler(DataHandler):
                 raise ValueError("data {} have nan".format(data_definition))
 
         # write data
-        with h5py.File(hdf_path, 'a') as h5f, \
+        with h5py.File(hdf_path, 'w') as h5f, \
                 SimpleTimer("[{}] Writing generated data {} to hdf5 file"
                             .format(type(self).__name__, data_definition),
                             end_in_new_line=False):
@@ -144,10 +150,10 @@ class H5pyDataHandler(DataHandler):
         return args.create_dataset_context is None
 
     def close(self):
-        if self.read_only_h5f_dict:
-            for data_definition, h5f in six.viewitems(self.read_only_h5f_dict):
+        if self.h5f_dict:
+            for data_definition, h5f in six.viewitems(self.h5f_dict):
                 h5f.close()
-            self.read_only_h5f_dict = {}
+            self.h5f_dict = {}
 
 
 class PandasHDFDataHandler(DataHandler):

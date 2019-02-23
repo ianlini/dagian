@@ -253,10 +253,10 @@ class DataGenerator(six.with_metaclass(DataGeneratorType, DataBundlerMixin)):
             function_kwargs.update(deepcopy(data_definitions.args._dict))
 
         # add handler-specific context
-        # for key, config in six.viewitems(output_configs):
-        #     handler = self._handlers[config['handler']]
-        #     data_definition = data_definitions.replace(key=key)
-        #     handler.update_context(context, data_definition, **config['handler_kwargs'])
+        for key, config in six.viewitems(output_configs):
+            handler = self._handlers[config['handler']]
+            data_definition = data_definitions.replace(key=key)
+            handler.update_context(context, data_definition, **config['handler_kwargs'])
 
         # run function
         function = getattr(self, func_name)
