@@ -5,7 +5,6 @@ import warnings
 from collections import namedtuple
 
 from bistiming import SimpleTimer
-import h5py
 import h5sparse
 import numpy as np
 import pandas as pd
@@ -55,12 +54,11 @@ class DataHandler(six.with_metaclass(ABCMeta, object)):
 
 class H5pyDataHandlerArgs(
         namedtuple('H5pyDataHandlerArgs', ['allow_nan',
-                                           'create_dataset_context',
-                                           'create_dataset_with_h5sparse'])):
+                                           'create_dataset_context'])):
     def __new__(
-            cls, allow_nan=False, create_dataset_context=None, create_dataset_with_h5sparse=False):
+            cls, allow_nan=False, create_dataset_context=None):
         return super(H5pyDataHandlerArgs, cls).__new__(
-            cls, allow_nan, create_dataset_context, create_dataset_with_h5sparse)
+            cls, allow_nan, create_dataset_context)
 
 
 class H5pyDataHandler(DataHandler):
@@ -103,14 +101,10 @@ class H5pyDataHandler(DataHandler):
         assert data_definition not in self.h5f_dict
         hdf_path = self._get_hdf_path(data_definition)
         assert not hdf_path.exists()
-        h5f = h5py.File(hdf_path, 'w')
+        h5f = h5sparse.File(hdf_path, 'w')
         self.h5f_dict[data_definition] = h5f
 
-        if not args.create_dataset_with_h5sparse:
-            functions[data_definition.key] = partial(h5f.create_dataset, 'data')
-        else:
-            raise NotImplementedError("create_dataset_with_h5sparse is not implemented yet.")
-            functions[data_definition.key] = partial(h5sparse.Group(h5f).create_dataset, 'data')
+        functions[data_definition.key] = partial(h5f.create_dataset, 'data')
 
     def write_data(self, data_definition, data, **kwargs):
         args = H5pyDataHandlerArgs(**kwargs)
@@ -140,10 +134,7 @@ class H5pyDataHandler(DataHandler):
     def close(self):
         if self.h5f_dict:
             for data_definition, h5f in six.viewitems(self.h5f_dict):
-                if isinstance(h5f, h5sparse.File):
-                    h5f.h5f.close()
-                else:
-                    h5f.close()
+                h5f.close()
             self.h5f_dict = {}
 
 

@@ -26,7 +26,7 @@ else:
         'pyyaml',
         'tables',
         'pandas',
-        'h5sparse>=0.0.5',
+        'h5sparse>=0.1.0',
         'pathlib2',
         'funcsigs',
         'tqdm',

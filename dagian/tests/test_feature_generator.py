@@ -51,7 +51,7 @@ def test_generate_lifetime_features():
                 'height',
                 'mem_raw_data',
                 'man_raw_data',
-                # 'man_sparse_raw_data',
+                'man_sparse_raw_data',
                 'pd_weight',
                 'pd_height',
                 'pd_raw_data',
@@ -96,6 +96,6 @@ def test_generate_lifetime_features():
         assert set(data_bundle_h5f['test_dict']) == {'comparison', 'others'}
         assert (set(data_bundle_h5f['test_dict/comparison'])
                 == set(bundle_config['structure']['test_dict']['comparison']))
-        assert data_bundle_h5f['features'].shape == (6, 18)
+        assert data_bundle_h5f['features'].shape == (6, 20)
 
     rmtree(test_output_dir)
