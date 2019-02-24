@@ -56,7 +56,7 @@ id,lifetime,tested_age,weight,height,gender,income
     # @require('data_df')
     # @will_generate(
     #     'h5py', 'man_sparse_raw_data', create_dataset_context='create_dataset_functions',
-    #     create_dataset_with_sparse_format='csr')
+    #     create_dataset_with_h5sparse=True)
     # def gen_man_sparse_raw_data(self, context):
     #     data_df = context['upstream_data']['data_df']
     #     context['create_dataset_functions']['man_sparse_raw_data'](
@@ -72,17 +72,17 @@ id,lifetime,tested_age,weight,height,gender,income
         return result_df
 
     @require('data_df')
-    @will_generate('pandas_hdf', 'pd_raw_data')
+    @will_generate('pandas_hdf', 'pd_raw_data', data_columns=True)
     def gen_raw_data_df(self, context):
         data_df = context['upstream_data']['data_df']
         return {'pd_raw_data': data_df[['weight', 'height']]}
 
-    # @require('pd_raw_data')
-    # @will_generate('pandas_hdf', 'pd_raw_data_append', manually_append=True)
-    # def gen_raw_data_append_df(self, context, append_functions):
-    #     df = context['upstream_data']['pd_raw_data'].value
-    #     append_functions['pd_raw_data_append'](df.iloc[:3])
-    #     append_functions['pd_raw_data_append'](df.iloc[3:])
+    @require('pd_raw_data')
+    @will_generate('pandas_hdf', 'pd_raw_data_append', append_context='append_functions')
+    def gen_raw_data_append_df(self, context):
+        df = context['upstream_data']['pd_raw_data'].value
+        context['append_functions']['pd_raw_data_append'](df.iloc[:3])
+        context['append_functions']['pd_raw_data_append'](df.iloc[3:])
 
     @require('data_df')
     @will_generate('h5py', 'BMI')
@@ -159,3 +159,10 @@ id,lifetime,tested_age,weight,height,gender,income
             context['upstream_data']['data_df'].shape[0],
             fill_value=np.nan, dtype=np.float32)
         return {'nan': nan}
+
+    @require('pd_raw_data')
+    @will_generate('h5py', 'light_weight')
+    def gen_light_weight(self, context):
+        raw_data = context['upstream_data']['pd_raw_data']
+        light_weight = raw_data.select(columns=['weight'], where="weight < 60")
+        return {'light_weight': light_weight.values}

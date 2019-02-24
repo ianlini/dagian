@@ -17,7 +17,7 @@ data_bundles_dir: data_bundles
 generator_kwargs:
   h5py_hdf_dir:
     h5py
-  pandas_hdf_path:
+  pandas_hdf_dir:
     pandas.h5
 """
     default_bundle_config = """\
