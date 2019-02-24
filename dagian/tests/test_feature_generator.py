@@ -10,7 +10,7 @@ from dagian.tools.dagian_runner import dagian_run_with_configs
 def test_generate_lifetime_features():
     test_output_dir = mkdtemp(prefix="dagian_test_output_")
     h5py_hdf_dir = join(test_output_dir, "h5py")
-    pandas_hdf_path = join(test_output_dir, "pandas.h5")
+    pandas_hdf_dir = join(test_output_dir, "pandas")
     pickle_dir = join(test_output_dir, "pickle")
     data_bundles_dir = join(test_output_dir, "data_bundles")
 
@@ -20,7 +20,7 @@ def test_generate_lifetime_features():
         'data_bundles_dir': data_bundles_dir,
         'generator_kwargs': {
             'h5py_hdf_dir': h5py_hdf_dir,
-            'pandas_hdf_path': pandas_hdf_path,
+            'pandas_hdf_dir': pandas_hdf_dir,
             'pickle_dir': pickle_dir,
         },
     }
