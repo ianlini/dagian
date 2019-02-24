@@ -42,6 +42,9 @@ def test_generate_lifetime_features():
                     'pd_raw_data',
                     'pd_raw_data_append',
                 ],
+                'others': [
+                    'light_weight',
+                ]
             },
             'features': [
                 'weight',
@@ -90,7 +93,7 @@ def test_generate_lifetime_features():
     with h5py.File(data_bundle_hdf_path, "r") as data_bundle_h5f:
         assert set(data_bundle_h5f) == {'features', 'test_filters', 'label', 'test_dict'}
         assert set(data_bundle_h5f['test_filters']) == {'is_in_test_set'}
-        assert set(data_bundle_h5f['test_dict']) == {'comparison'}
+        assert set(data_bundle_h5f['test_dict']) == {'comparison', 'others'}
         assert (set(data_bundle_h5f['test_dict/comparison'])
                 == set(bundle_config['structure']['test_dict']['comparison']))
         assert data_bundle_h5f['features'].shape == (6, 18)
