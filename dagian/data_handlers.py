@@ -35,9 +35,8 @@ class DataHandler(six.with_metaclass(ABCMeta, object)):
     def write_data(self, data_definition, data, **kwargs):
         pass
 
-    def bundle(self, data_definition, path, new_key):
-        """Copy the data to another HDF5 file with new key."""
-        data = self.get(data_definition)
+    def bundle(self, data, path, new_key):
+        """write the data to another HDF5 file with new key."""
         with h5sparse.File(path) as h5f:
             h5f.create_dataset(new_key, data=data)
         self.close()
@@ -227,10 +226,9 @@ class PandasHDFDataHandler(DataHandler):
             else:
                 hdf_store.put('data', data, format='table', data_columns=args.data_columns)
 
-    def bundle(self, data_definition, path, new_key):
-        """Copy the data to another HDF5 file with new key."""
-        data = self.get(data_definition).value
-        data.to_hdf(path, new_key)
+    def bundle(self, data, path, new_key):
+        """Write the data to another HDF5 file with new key."""
+        data.value.to_hdf(path, new_key)
         self.close()
 
     def is_return_data_expected(self, **kwargs):

@@ -131,8 +131,9 @@ class DataBundlerMixin(object):
                                      "dict structure to distinguish them instead."
                                      .format(data_definition.key))
                 key_set.add(data_definition.key)
+                data = self.get(data_definition)
                 self.get_handler(data_definition.key).bundle(
-                    data_definition, data_bundle_hdf_path, dset_name + "/" + data_definition.key)
+                    data, data_bundle_hdf_path, dset_name + "/" + data_definition.key)
 
     def _bundle_dict_in_structure(
             self, structure, data_bundle_hdf_path, buffer_size, structure_config, dset_name):
@@ -141,8 +142,9 @@ class DataBundlerMixin(object):
                 raise ValueError("Cannot use 'loop' in a dict structure. Use list structure with "
                                  "concat mode instead.")
             data_definition = get_data_definitions_from_raw_data_definition(structure)[0]
+            data = self.get(data_definition)
             self.get_handler(data_definition.key).bundle(
-                data_definition, data_bundle_hdf_path, dset_name)
+                data, data_bundle_hdf_path, dset_name)
         else:
             for key, val in six.viewitems(structure):
                 self._bundle(
@@ -153,8 +155,9 @@ class DataBundlerMixin(object):
     def _bundle(
             self, structure, data_bundle_hdf_path, buffer_size, structure_config, dset_name=""):
         if isinstance(structure, basestring) and dset_name != "":
+            data = self.get(DataDefinition(structure))
             self.get_handler(structure).bundle(
-                DataDefinition(structure), data_bundle_hdf_path, dset_name)
+                data, data_bundle_hdf_path, dset_name)
         elif isinstance(structure, list):
             self._bundle_list_in_structure(
                 structure, data_bundle_hdf_path, buffer_size, structure_config, dset_name)
