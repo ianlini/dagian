@@ -4,6 +4,7 @@ from past.builtins import basestring
 
 import numpy as np
 import pandas as pd
+import scipy.sparse as sp
 import h5py
 import six
 from bistiming import SimpleTimer
@@ -94,7 +95,7 @@ class DataBundlerMixin(object):
         data_d = 0
         for data_i, (data_definition, data_shape) in enumerate(zip(data_definitions, data_shapes)):
             data = self.get(data_definition)
-            if isinstance(data, pd.DataFrame):
+            if isinstance(data, (pd.DataFrame, pd.Series)):
                 data = data.values
             batch_size = buffer_size // (data.dtype.itemsize * data_shape[1])
             if batch_size == 0:
@@ -105,9 +106,9 @@ class DataBundlerMixin(object):
             for batch_start in trange(0, data_shape[0], batch_size, desc=desc):
                 batch_end = min(data_shape[0], batch_start + batch_size)
                 data_buffer = data[batch_start: batch_end]
-                if isinstance(data_buffer, pd.DataFrame):
-                    data_buffer.values
-                if len(data_buffer.shape) == 1:
+                if isinstance(data_buffer, sp.spmatrix):
+                    data_buffer = data_buffer.toarray()
+                elif len(data_buffer.shape) == 1:
                     data_buffer = data_buffer[:, np.newaxis]
                 dset[batch_start: batch_end,
                      data_d: data_d + data_shape[1]] = data_buffer

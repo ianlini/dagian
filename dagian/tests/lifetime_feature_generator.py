@@ -53,14 +53,13 @@ id,lifetime,tested_age,weight,height,gender,income
         dset = context['create_dataset_functions']['man_raw_data'](shape=(data_df.shape[0], 2))
         dset[...] = data_df[['weight', 'height']].values
 
-    # @require('data_df')
-    # @will_generate(
-    #     'h5py', 'man_sparse_raw_data', create_dataset_context='create_dataset_functions',
-    #     create_dataset_with_h5sparse=True)
-    # def gen_man_sparse_raw_data(self, context):
-    #     data_df = context['upstream_data']['data_df']
-    #     context['create_dataset_functions']['man_sparse_raw_data'](
-    #         data=csr_matrix(data_df[['weight', 'height']].values))
+    @require('data_df')
+    @will_generate(
+        'h5py', 'man_sparse_raw_data', create_dataset_context='create_dataset_functions')
+    def gen_man_sparse_raw_data(self, context):
+        data_df = context['upstream_data']['data_df']
+        context['create_dataset_functions']['man_sparse_raw_data'](
+            data=csr_matrix(data_df[['weight', 'height']].values))
 
     @require('data_df')
     @will_generate('pandas_hdf', ['pd_weight', 'pd_height'])
