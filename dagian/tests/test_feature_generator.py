@@ -42,9 +42,13 @@ def test_generate_lifetime_features():
                     'pd_raw_data',
                     'pd_raw_data_append',
                 ],
-                'others': [
-                    'light_weight',
-                ]
+                'others': {
+                    'light_weight': 'light_weight',
+                    'height_divide_weight': {
+                        'key': 'division',
+                        'args': {'dividend': 'weight'},
+                    },
+                },
             },
             'features': [
                 'weight',
