@@ -186,6 +186,22 @@ class PandasHDFDataHandler(DataHandler):
         return {data_def: PandasHDFDataset(self._get_read_only_hdf_store(data_def), 'data')
                 for data_def in data_definition}
 
+    def update_context(self, context, data_definition, **kwargs):
+        args = PandasHDFDataHandlerArgs(**kwargs)
+        if args.append_context is None:
+            return
+        functions = context.setdefault(args.append_context, {})
+        assert data_definition.key not in functions
+
+        # open hdf store
+        assert data_definition not in self.hdf_store_dict
+        hdf_path = self._get_hdf_path(data_definition)
+        assert not hdf_path.exists()
+        hdf_store = pd.HDFStore(hdf_path, 'w')
+        self.hdf_store_dict[data_definition] = hdf_store
+
+        functions[data_definition.key] = partial(hdf_store.append, 'data')
+
     def write_data(self, data_definition, data, **kwargs):
         args = PandasHDFDataHandlerArgs(**kwargs)
         hdf_path = self._get_hdf_path(data_definition)

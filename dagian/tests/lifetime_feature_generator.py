@@ -77,12 +77,12 @@ id,lifetime,tested_age,weight,height,gender,income
         data_df = context['upstream_data']['data_df']
         return {'pd_raw_data': data_df[['weight', 'height']]}
 
-    # @require('pd_raw_data')
-    # @will_generate('pandas_hdf', 'pd_raw_data_append', append_context='append_functions')
-    # def gen_raw_data_append_df(self, context):
-    #     df = context['upstream_data']['pd_raw_data'].value
-    #     context['append_functions']['pd_raw_data_append'](df.iloc[:3])
-    #     context['append_functions']['pd_raw_data_append'](df.iloc[3:])
+    @require('pd_raw_data')
+    @will_generate('pandas_hdf', 'pd_raw_data_append', append_context='append_functions')
+    def gen_raw_data_append_df(self, context):
+        df = context['upstream_data']['pd_raw_data'].value
+        context['append_functions']['pd_raw_data_append'](df.iloc[:3])
+        context['append_functions']['pd_raw_data_append'](df.iloc[3:])
 
     @require('data_df')
     @will_generate('h5py', 'BMI')

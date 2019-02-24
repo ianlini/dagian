@@ -40,7 +40,7 @@ def test_generate_lifetime_features():
                     'pd_weight',
                     'pd_height',
                     'pd_raw_data',
-                    # 'pd_raw_data_append',
+                    'pd_raw_data_append',
                 ],
             },
             'features': [
