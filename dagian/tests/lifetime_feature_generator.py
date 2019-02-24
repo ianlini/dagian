@@ -56,7 +56,7 @@ id,lifetime,tested_age,weight,height,gender,income
     # @require('data_df')
     # @will_generate(
     #     'h5py', 'man_sparse_raw_data', create_dataset_context='create_dataset_functions',
-    #     create_dataset_with_sparse_format='csr')
+    #     create_dataset_with_h5sparse=True)
     # def gen_man_sparse_raw_data(self, context):
     #     data_df = context['upstream_data']['data_df']
     #     context['create_dataset_functions']['man_sparse_raw_data'](

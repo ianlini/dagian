@@ -56,12 +56,11 @@ class DataHandler(six.with_metaclass(ABCMeta, object)):
 class H5pyDataHandlerArgs(
         namedtuple('H5pyDataHandlerArgs', ['allow_nan',
                                            'create_dataset_context',
-                                           'create_dataset_with_sparse_format'])):
+                                           'create_dataset_with_h5sparse'])):
     def __new__(
-            cls, allow_nan=False, create_dataset_context=None,
-            create_dataset_with_sparse_format=None):
+            cls, allow_nan=False, create_dataset_context=None, create_dataset_with_h5sparse=False):
         return super(H5pyDataHandlerArgs, cls).__new__(
-            cls, allow_nan, create_dataset_context, create_dataset_with_sparse_format)
+            cls, allow_nan, create_dataset_context, create_dataset_with_h5sparse)
 
 
 class H5pyDataHandler(DataHandler):
@@ -83,14 +82,14 @@ class H5pyDataHandler(DataHandler):
     def _get_read_only_h5py_file(self, data_definition):
         if data_definition in self.h5f_dict:
             return self.h5f_dict[data_definition]
-        h5f = h5py.File(self._get_hdf_path(data_definition), 'r')
+        h5f = h5sparse.File(self._get_hdf_path(data_definition), 'r')
         self.h5f_dict[data_definition] = h5f
         return h5f
 
     def get(self, data_definition):
         if isinstance(data_definition, DataDefinition):
-            return h5sparse.Group(self._get_read_only_h5py_file(data_definition))['data']
-        return {data_def: h5sparse.Group(self._get_read_only_h5py_file(data_def))['data']
+            return self._get_read_only_h5py_file(data_definition)['data']
+        return {data_def: self._get_read_only_h5py_file(data_def)['data']
                 for data_def in data_definition}
 
     def update_context(self, context, data_definition, **kwargs):
@@ -107,13 +106,11 @@ class H5pyDataHandler(DataHandler):
         h5f = h5py.File(hdf_path, 'w')
         self.h5f_dict[data_definition] = h5f
 
-        if args.create_dataset_with_sparse_format is None:
+        if not args.create_dataset_with_h5sparse:
             functions[data_definition.key] = partial(h5f.create_dataset, 'data')
-        # elif args.create_dataset_with_sparse_format in SPARSE_FORMAT_SET:
-        #     functions[data_definition.key] = partial(h5sparse.Group(h5f).create_dataset, 'data')
         else:
-            raise ValueError("The sparse format '%s' is not supported."
-                             % args.create_dataset_with_sparse_format)
+            raise NotImplementedError("create_dataset_with_h5sparse is not implemented yet.")
+            functions[data_definition.key] = partial(h5sparse.Group(h5f).create_dataset, 'data')
 
     def write_data(self, data_definition, data, **kwargs):
         args = H5pyDataHandlerArgs(**kwargs)
@@ -130,11 +127,11 @@ class H5pyDataHandler(DataHandler):
                 raise ValueError("data {} have nan".format(data_definition))
 
         # write data
-        with h5py.File(hdf_path, 'w') as h5f, \
+        with h5sparse.File(hdf_path, 'w') as h5f, \
                 SimpleTimer("[{}] Writing generated data {} to hdf5 file"
                             .format(type(self).__name__, data_definition),
                             end_in_new_line=False):
-            h5sparse.Group(h5f).create_dataset('data', data=data)
+            h5f.create_dataset('data', data=data)
 
     def is_return_data_expected(self, **kwargs):
         args = H5pyDataHandlerArgs(**kwargs)
@@ -143,7 +140,10 @@ class H5pyDataHandler(DataHandler):
     def close(self):
         if self.h5f_dict:
             for data_definition, h5f in six.viewitems(self.h5f_dict):
-                h5f.close()
+                if isinstance(h5f, h5sparse.File):
+                    h5f.h5f.close()
+                else:
+                    h5f.close()
             self.h5f_dict = {}
 
 
@@ -151,8 +151,7 @@ class PandasHDFDataHandlerArgs(
         namedtuple('PandasHDFDataHandlerArgs', ['allow_nan',
                                                 'append_context',
                                                 'data_columns'])):
-    def __new__(
-            cls, allow_nan=False, append_context=None, data_columns=None):
+    def __new__(cls, allow_nan=False, append_context=None, data_columns=None):
         return super(PandasHDFDataHandlerArgs, cls).__new__(
             cls, allow_nan, append_context, data_columns)
 
