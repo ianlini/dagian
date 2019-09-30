@@ -1,6 +1,9 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
-import collections
 from collections import OrderedDict
+try:
+    from collections.abc import Mapping, Sequence, Hashable
+except ImportError:
+    from collections import Mapping, Sequence, Hashable
 import copy
 import json
 
@@ -14,7 +17,7 @@ class FrozenDictJSONEncoder(json.JSONEncoder):
         return super(FrozenDictJSONEncoder, self).default(obj)
 
 
-class FrozenDict(collections.Mapping):
+class FrozenDict(Mapping):
     def __init__(self, *args, **kwargs):
         self._dict = dict(*args, **kwargs)
 
@@ -90,11 +93,11 @@ class FrozenDict(collections.Mapping):
 
     @classmethod
     def recursively_froze(cls, value):
-        if (isinstance(value, collections.Mapping)
-                and not isinstance(value, collections.Hashable)):
+        if (isinstance(value, Mapping)
+                and not isinstance(value, Hashable)):
             value = cls._recursively_froze_mapping(value)
-        elif (isinstance(value, collections.Sequence)
-                and not isinstance(value, collections.Hashable)):
+        elif (isinstance(value, Sequence)
+                and not isinstance(value, Hashable)):
             value = cls._recursively_froze_sequence(value)
         return value
 

@@ -79,7 +79,7 @@ id,lifetime,tested_age,weight,height,gender,income
     @require('pd_raw_data')
     @will_generate('pandas_hdf', 'pd_raw_data_append', append_context='append_functions')
     def gen_raw_data_append_df(self, context):
-        df = context['upstream_data']['pd_raw_data'].value
+        df = context['upstream_data']['pd_raw_data'][()]
         context['append_functions']['pd_raw_data_append'](df.iloc[:3])
         context['append_functions']['pd_raw_data_append'](df.iloc[3:])
 
@@ -95,7 +95,7 @@ id,lifetime,tested_age,weight,height,gender,income
     @will_generate('h5py', 'division')
     def gen_division(self, context, dividend, divisor='height'):
         upstream_data = context['upstream_data']
-        division_result = upstream_data['{dividend}'].value / upstream_data['{divisor}'].value
+        division_result = upstream_data['{dividend}'][()] / upstream_data['{divisor}'][()]
         return {'division': division_result}
 
     @require('division', 'partial_division', dividend=A('dividend'), divisor=A('divisor1'))
@@ -103,7 +103,7 @@ id,lifetime,tested_age,weight,height,gender,income
     @will_generate('h5py', 'division_2_divisor')
     def gen_division_2_divisor(self, context, dividend, divisor1, divisor2):
         upstream_data = context['upstream_data']
-        division_result = upstream_data['partial_division'].value / upstream_data['divisor2'].value
+        division_result = upstream_data['partial_division'][()] / upstream_data['divisor2'][()]
         return {'division_2_divisor': division_result}
 
     @require('division', dividend=A('dividend', lambda x: 'pd_' + x), divisor=A('divisor1'))
@@ -111,7 +111,7 @@ id,lifetime,tested_age,weight,height,gender,income
     @will_generate('h5py', 'division_pd_2_divisor')
     def gen_division_pd_2_divisor(self, context, dividend, divisor1, divisor2):
         upstream_data = context['upstream_data']
-        division_result = upstream_data['division'].value / upstream_data['divisor2'].value
+        division_result = upstream_data['division'][()] / upstream_data['divisor2'][()]
         return {'division_pd_2_divisor': division_result}
 
     @require(A('dividend'))
@@ -119,7 +119,7 @@ id,lifetime,tested_age,weight,height,gender,income
     @will_generate('h5py', 'recursive_division')
     def gen_recursive_division(self, context, dividend, divisor):
         upstream_data = context['upstream_data']
-        division_result = upstream_data['dividend'].value / upstream_data['divisor'].value
+        division_result = upstream_data['dividend'][()] / upstream_data['divisor'][()]
         return {'recursive_division': division_result}
 
     @require(A('sequence'))
@@ -127,9 +127,9 @@ id,lifetime,tested_age,weight,height,gender,income
     def gen_sequential_division(self, context, sequence):
         assert sequence
         upstream_data = context['upstream_data']
-        division_result = upstream_data['sequence'][0].value
+        division_result = upstream_data['sequence'][0][()]
         for data in upstream_data['sequence'][1:]:
-            division_result /= data.value
+            division_result /= data[()]
         return {'sequential_division': division_result}
 
     @require('data_df')

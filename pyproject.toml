@@ -1,0 +1,50 @@
+[tool.poetry]
+name = "dagian"
+version = "0.1.0dev0"
+description = "A data-centric DAG framework in Python."
+authors = ["Ian Lin <you@example.com>"]
+license = "MIT"
+readme = "README.rst"
+repository = "https://github.com/ianlini/dagian"
+homepage = "https://github.com/ianlini/dagian"
+classifiers = [
+    'Topic :: Scientific/Engineering :: Artificial Intelligence',
+    'Topic :: Scientific/Engineering :: Information Analysis',
+    'Topic :: Scientific/Engineering :: Image Recognition',
+]
+
+[tool.poetry.dependencies]
+python = "~2.7 || ^3.5"
+six = "^1.12"
+pathlib2 = "^2.3"
+future = "^0.17.1"
+mkdir-p = "^0.1.1"
+h5py = "^2.7"
+bistiming = "^0.4.0"
+numpy = "^1.16"
+scipy = "^1"
+networkx = "^2"
+pyyaml = "^5.1"
+tables = "^3.5"
+pandas = ">=0.24 <1"
+h5sparse = "^0.1.0"
+funcsigs = "^1.0"
+tqdm = "^4.36"
+python-dotenv = "^0.10.3"
+
+[tool.poetry.dev-dependencies]
+pytest = "^4.6"
+flake8 = "^3.7"
+tox = "^3.14"
+coverage = "^4.5"
+doc8 = "^0.8.0"
+scikit-learn = ">= 0.21 <1"
+
+[tool.poetry.plugins.console_scripts]
+dagian = "dagian.tools:dagian_run"
+dagian-init = "dagian.tools:init_config"
+dagian-draw-dag = "dagian.tools:draw_dag"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"

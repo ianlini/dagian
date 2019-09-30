@@ -88,7 +88,7 @@ class DataBundlerMixin(object):
         n_cols = sum(shape[1] for shape in data_shapes)
         concat_shape = (n_rows, n_cols)
 
-        h5f = h5py.File(data_bundle_hdf_path)
+        h5f = h5py.File(data_bundle_hdf_path, 'a')
         dset = h5f.create_dataset(dset_name, shape=concat_shape,
                                   dtype=np.float32)
 
