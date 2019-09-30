@@ -37,7 +37,7 @@ class DataHandler(six.with_metaclass(ABCMeta, object)):
 
     def bundle(self, data, path, new_key):
         """write the data to another HDF5 file with new key."""
-        with h5sparse.File(path) as h5f:
+        with h5sparse.File(path, 'a') as h5f:
             h5f.create_dataset(new_key, data=data)
         self.close()
 

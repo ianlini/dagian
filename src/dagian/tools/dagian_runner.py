@@ -1,7 +1,10 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
 import sys
 import argparse
-import collections
+try:
+    from collections.abc import Mapping
+except ImportError:
+    from collections import Mapping
 
 import yaml
 from pathlib2 import Path
@@ -15,21 +18,19 @@ def dagian_run_with_configs(global_config, bundle_config, dag_output_path=None,
                             no_bundle=False):
     """Generate feature with configurations.
 
-    global_config (collections.Mapping): global configuration
+    global_config (Mapping): global configuration
         generator_class: string
         data_bundles_dir: string
-        generator_kwargs: collections.Mapping
+        generator_kwargs: Mapping
 
-    bundle_config (collections.Mapping): bundle configuration
+    bundle_config (Mapping): bundle configuration
         name: string
-        structure: collections.Mapping
+        structure: Mapping
     """
-    if not isinstance(global_config, collections.Mapping):
-        raise ValueError("global_config should be a "
-                         "collections.Mapping object.")
-    if not isinstance(bundle_config, collections.Mapping):
-        raise ValueError("bundle_config should be a "
-                         "collections.Mapping object.")
+    if not isinstance(global_config, Mapping):
+        raise ValueError("global_config should be a Mapping object.")
+    if not isinstance(bundle_config, Mapping):
+        raise ValueError("bundle_config should be a Mapping object.")
     data_generator = get_data_generator_from_config(global_config)
     data_definitions = get_data_definitions_from_structure(bundle_config['structure'])
     data_generator.generate(data_definitions, dag_output_path)

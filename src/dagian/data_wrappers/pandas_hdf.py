@@ -48,6 +48,8 @@ class PandasHDFDataset(object):
         return self._hdf_store.select_as_coordinates(self.key, *arg, **kwargs)
 
     def __getitem__(self, key):
+        if key == ():
+            return self._hdf_store[self.key]
         if isinstance(key, int):
             return self._hdf_store.select(self.key, start=key, stop=key + 1)
         elif isinstance(key, slice):

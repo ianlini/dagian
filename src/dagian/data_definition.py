@@ -1,5 +1,8 @@
 from __future__ import print_function, division, absolute_import, unicode_literals
-import collections
+try:
+    from collections.abc import Mapping, Sequence, Hashable
+except ImportError:
+    from collections import Mapping, Sequence, Hashable
 
 import six
 from six.moves import zip
@@ -99,13 +102,13 @@ class RequirementDefinition(DataDefinition):
         # evaluate key
         if isinstance(self._key, Argument):
             raw_data_def = self._key.eval(args)
-            if isinstance(raw_data_def, collections.Mapping):
+            if isinstance(raw_data_def, Mapping):
                 new_keys = [raw_data_def['key']]
                 new_args = [dict(raw_data_def.get('args', {}))]
             elif isinstance(raw_data_def, basestring):
                 new_keys = [raw_data_def]
                 new_args = [{}]
-            elif isinstance(raw_data_def, collections.Sequence):
+            elif isinstance(raw_data_def, Sequence):
                 new_keys = []
                 new_args = []
                 for _raw_data_def in raw_data_def:
@@ -131,7 +134,7 @@ class RequirementDefinition(DataDefinition):
                 arg = arg.eval(args)
             elif isinstance(arg, basestring):
                 arg = arg.format(**args)
-            elif not isinstance(arg, collections.Hashable):
+            elif not isinstance(arg, Hashable):
                 raise ValueError(
                     "The values in RequirementDefinition.args can only be Argument or hashable.")
             for new_arg in new_args:

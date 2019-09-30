@@ -38,6 +38,7 @@ flake8 = "^3.7"
 tox = "^3.14"
 coverage = "^4.5"
 doc8 = "^0.8.0"
+scikit-learn = ">= 0.21 <1"
 
 [tool.poetry.plugins.console_scripts]
 dagian = "dagian.tools:dagian_run"
