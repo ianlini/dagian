@@ -90,6 +90,3 @@ ENV/
 
 # VS Code settings
 .vscode
-
-/coverage/
-.noseids
